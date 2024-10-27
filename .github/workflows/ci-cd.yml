@@ -18,7 +18,7 @@ jobs:
 
     - name: Log in to Amazon ECR
       env:
-        AWS_REGION: <REGION>
+        AWS_REGION: <us-east-1>
       run: |
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
 
@@ -26,15 +26,15 @@ jobs:
       env:
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t my-app .
-        docker tag my-app:latest <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/my-app:${{ github.sha }}
-        docker push <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/my-app:${{ github.sha }}
+        docker build -t my-argocd-app .
+        docker tag my-argocd-app:latest <781655249241>.dkr.ecr.<us-east-1>.amazonaws.com/my-argocd-app:${{ github.sha }}
+        docker push <781655249241>.dkr.ecr.<us-east-1>.amazonaws.com/my-argocd-app:${{ github.sha }}
 
     - name: Update Kubernetes Manifests
       run: |
         sed -i "s/latest/${{ github.sha }}/g" manifests/deployment.yaml
-        git config --global user.email "your-email@example.com"
-        git config --global user.name "your-username"
+        git config --global user.email "fyuyuun@gmail.com"
+        git config --global user.name "florayuyuun123"
         git add manifests/deployment.yaml
         git commit -m "Update image version to ${{ github.sha }}"
         git push origin main
@@ -44,4 +44,4 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/my-app:${{ github.sha }}
+        image: <781655249241>.dkr.ecr.<us-east-1>.amazonaws.com/my-argocd-app:${{ github.sha }}
