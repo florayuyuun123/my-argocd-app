@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: my-argocd-app
-        image: <590184076844>.dkr.ecr.<us-east-1>.amazonaws.com/my-argocd-app:latest
+        image: <781655249241>.dkr.ecr.<us-east-1>.amazonaws.com/my-argocd-app:latest
         ports:
         - containerPort: 80
