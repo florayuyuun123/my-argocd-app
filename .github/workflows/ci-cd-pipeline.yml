@@ -1,5 +1,3 @@
-# .github/workflows/ci-cd-pipeline.yml
-
 name: CI/CD Pipeline
 
 on:
@@ -8,21 +6,28 @@ on:
       - main  # Trigger on pushes to the main branch
 
 jobs:
-  build-and-scan:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Dependency Vulnerability Scan with Snyk
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'  # Use the Node.js version you require
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Snyk Dependency Scan
         uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: "--file=app/package.json"
+          args: --file=app/package.json
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Log in to Amazon ECR
         env:
@@ -39,7 +44,6 @@ jobs:
         run: |
           docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest ./app
 
-      # Docker Image Vulnerability Scan with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -48,13 +52,13 @@ jobs:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Push Docker image to ECR
-        if: success()  # Only push if Snyk scans passed
+        if: success()  # Only push if all steps above were successful
         run: |
           docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
   deploy-to-eks:
     runs-on: ubuntu-latest
-    needs: build-and-scan  # Run this job only if build-and-scan succeeds
+    needs: build  # Ensure this job only runs if the 'build' job is successful
 
     steps:
       - name: Checkout code
@@ -70,6 +74,6 @@ jobs:
         run: |
           sed -i "s|<IMAGE>|${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest|g" ./config/k8s/deployment.yaml
 
-      - name: Apply manifests to EKS
+      - name: Apply Kubernetes manifests to EKS
         run: |
           kubectl apply -f ./config/k8s/argocd-app.yaml
