@@ -16,10 +16,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Use the Node.js version you require
+          node-version: '16'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --prefix ./app  # Specify the path to your app directory
 
       - name: Snyk Dependency Scan
         uses: snyk/actions/node@master
@@ -52,7 +52,7 @@ jobs:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Push Docker image to ECR
-        if: success()  # Only push if all steps above were successful
+        if: success()
         run: |
           docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
