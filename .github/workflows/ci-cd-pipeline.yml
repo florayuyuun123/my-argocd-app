@@ -29,6 +29,17 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
+      - name: Update AWS CLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      - name: Update Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install --only-upgrade docker-ce
+
       - name: Login to Amazon ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -37,15 +48,6 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
-      - name: Debug Login to Amazon ECR
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        run: |
-          aws ecr get-login-password --region "$AWS_REGION" --debug | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
       - name: Build Docker image
         run: |
@@ -70,7 +72,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Configure kubectl
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
