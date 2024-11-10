@@ -1,0 +1,19 @@
+# config/k8s/argocd-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd              # Namespace where ArgoCD is installed
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/florayuyuun123/my-argocd-app.git'  # GitHub repository URL
+    path: config/k8s            # Path to Kubernetes manifests in the repository
+    targetRevision: main        # Git branch to track
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default           # Namespace to deploy the app in EKS
+  syncPolicy:
+    automated:
+      prune: true                # Automatically delete resources not defined in the repo
+      selfHeal: true             # Automatically sync if there are changes

@@ -1,0 +1,75 @@
+# .github/workflows/ci-cd-pipeline.yml
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Dependency Vulnerability Scan with Snyk
+      - name: Snyk Dependency Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: "--file=app/package.json"
+
+      - name: Log in to Amazon ECR
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set region $AWS_REGION
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest ./app
+
+      # Docker Image Vulnerability Scan with Snyk
+      - name: Snyk Docker Image Scan
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+
+      - name: Push Docker image to ECR
+        if: success()  # Only push if Snyk scans passed
+        run: |
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+
+  deploy-to-eks:
+    runs-on: ubuntu-latest
+    needs: build-and-scan  # Run this job only if build-and-scan succeeds
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure kubectl
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+
+      - name: Update Kubernetes manifests
+        run: |
+          sed -i "s|<IMAGE>|${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest|g" ./config/k8s/deployment.yaml
+
+      - name: Apply manifests to EKS
+        run: |
+          kubectl apply -f ./config/k8s/argocd-app.yaml
