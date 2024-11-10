@@ -36,7 +36,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           # Get login password and login to ECR
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
       - name: Build Docker image
         run: |
@@ -70,7 +70,7 @@ jobs:
 
       - name: Update Kubernetes manifests
         run: |
-          sed -i "s|<IMAGE>|${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest|g" ./config/k8s/deployment.yaml
+          sed -i "s|my-argocd-app|${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest|g" ./config/k8s/deployment.yaml
 
       - name: Apply Kubernetes manifests to EKS
         run: |
