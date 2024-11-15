@@ -39,14 +39,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install --only-upgrade docker-ce
 
-      # Step 6: Login to Amazon ECR
-      - name: Login to Amazon ECR
+      # Step 6: Ensure Script Permissions and Run ECR Login Script
+      - name: Ensure Script Permissions and Run ECR Login Script
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        run: ./scripts/ecr-login.sh  # Use the login script
+          AWS_REGION: us-east-1
+          ECR_REGISTRY: 123456789012.dkr.ecr.us-east-1.amazonaws.com
+        run: |
+          # Ensure script exists
+          if [ ! -f ./scripts/ecr-login.sh ]; then
+            echo "Error: ./scripts/ecr-login.sh not found."
+            exit 1
+          fi
+
+          # Add execute permissions
+          chmod +x ./scripts/ecr-login.sh
+
+          # Execute the script
+          ./scripts/ecr-login.sh
 
       # Step 7: Build Docker image
       - name: Build Docker image
