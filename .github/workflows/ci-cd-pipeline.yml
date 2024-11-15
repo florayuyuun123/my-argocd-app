@@ -45,7 +45,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
-          ECR_REGISTRY: 123456789012.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
           # Ensure script exists
           if [ ! -f ./scripts/ecr-login.sh ]; then
@@ -61,8 +61,11 @@ jobs:
 
       # Step 7: Build Docker image
       - name: Build Docker image
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest ./app
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
 
       # Step 8: Run Snyk Docker Image Scan
       - name: Snyk Docker Image Scan
@@ -75,8 +78,11 @@ jobs:
       # Step 9: Push Docker image to ECR
       - name: Push Docker image to ECR
         if: success()
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   deploy-to-eks:
     runs-on: ubuntu-latest
@@ -96,8 +102,11 @@ jobs:
 
       # Step 3: Update Kubernetes manifests with the new image
       - name: Update Kubernetes manifests
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          sed -i "s|my-argocd-app|${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest|g" ./config/k8s/deployment.yaml
+          sed -i "s|my-argocd-app|$ECR_REGISTRY/$ECR_REPOSITORY:latest|g" ./config/k8s/deployment.yaml
 
       # Step 4: Apply Kubernetes manifests to Amazon EKS
       - name: Apply Kubernetes manifests to EKS
