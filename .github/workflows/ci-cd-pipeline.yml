@@ -22,7 +22,7 @@ jobs:
 
       # Step 3: Install Node.js dependencies
       - name: Install dependencies
-        run: npm install --prefix ./app  # Specify the path to your app directory
+        run: npm install --prefix ./app
 
       # Step 4: Run Snyk Dependency Scan (Node.js dependencies)
       - name: Snyk Dependency Scan
@@ -46,8 +46,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        run: |
-          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+        run: ./scripts/ecr-login.sh  # Use the login script
 
       # Step 7: Build Docker image
       - name: Build Docker image
@@ -70,7 +69,7 @@ jobs:
 
   deploy-to-eks:
     runs-on: ubuntu-latest
-    needs: build  # Ensure this job only runs if the 'build' job is successful
+    needs: build
 
     steps:
       # Step 1: Check out the code
