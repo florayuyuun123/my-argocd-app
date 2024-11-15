@@ -18,12 +18,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'  # Upgrade to Node.js 18 for compatibility
 
       # Step 3: Audit and Fix Node.js Dependencies
       - name: Audit and Fix Node.js Dependencies
         run: |
-          npm install -g npm@10.9.0  # Upgrade npm to fix vulnerabilities
           npm install --prefix ./app
           npm audit fix --prefix ./app  # Automatically fix vulnerabilities
 
@@ -35,7 +34,7 @@ jobs:
           args: --file=app/package.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
+          
       # Step 5: Audit Go Dependencies
       - name: Audit Go Dependencies
         run: |
