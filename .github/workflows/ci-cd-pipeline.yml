@@ -123,3 +123,4 @@ jobs:
       - name: Apply Kubernetes manifests to EKS
         run: |
           kubectl apply -f ./config/k8s/argocd-app.yaml
+
