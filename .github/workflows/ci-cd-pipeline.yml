@@ -14,62 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js
+      # Step 2: Set up Node.js (Optional, if you need Node.js for other tasks)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Upgrade to Node.js 18 for compatibility
+          node-version: '18'
 
-      # Step 3: Audit and Fix Node.js Dependencies
-      - name: Audit and Fix Node.js Dependencies
-        run: |
-          npm install --prefix ./app
-          npm audit fix --prefix ./app  # Automatically fix vulnerabilities
-
-      # Step 4: Run Snyk Dependency Scan (Node.js dependencies)
-      - name: Snyk Dependency Scan
-        uses: snyk/actions/node@master
-        with:
-          command: monitor
-          args: --file=app/package.json
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      # Step 5: Update Docker (optional)
-      - name: Update Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install --only-upgrade docker-ce
-
-      # Step 6: Ensure Script Permissions and Run ECR Login Script
-      - name: Ensure Script Permissions and Run ECR Login Script
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        run: |
-          # Ensure script exists
-          if [ ! -f ./scripts/ecr-login.sh ]; then
-            echo "Error: ./scripts/ecr-login.sh not found."
-            exit 1
-          fi
-
-          # Add execute permissions
-          chmod +x ./scripts/ecr-login.sh
-
-          # Execute the script
-          ./scripts/ecr-login.sh
-
-      # Step 7: Build Docker Image
+      # Step 3: Build Docker Image
       - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --pull --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
+          docker build --pull --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
 
-      # Step 8: Scan Docker Image with Snyk
+      # Step 4: Scan Docker Image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -77,7 +36,7 @@ jobs:
         with:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-      # Step 9: Fix Vulnerabilities in Docker Image (Optional)
+      # Step 5: Fix Vulnerabilities in Docker Image (Optional)
       - name: Fix Vulnerabilities
         uses: snyk/actions/docker@master
         with:
@@ -86,7 +45,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # Step 10: Push Docker Image to ECR
+      # Step 6: Push Docker Image to ECR
       - name: Push Docker image to ECR
         if: success()
         env:
@@ -123,4 +82,5 @@ jobs:
       - name: Apply Kubernetes manifests to EKS
         run: |
           kubectl apply -f ./config/k8s/argocd-app.yaml
+
 
