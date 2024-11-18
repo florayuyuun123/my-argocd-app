@@ -14,21 +14,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js (Optional, if you need Node.js for other tasks)
+      # Step 2: Set up Node.js (Optional, if needed for other tasks)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # Step 3: Build Docker Image
+      # Step 3: Debug: Ensure Dockerfile exists
+      - name: Debug: List files in app directory
+        run: ls -R ./app
+
+      # Step 4: Build Docker Image
       - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --pull --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker build --pull --no-cache \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -f ./app/Dockerfile ./app
 
-      # Step 4: Scan Docker Image with Snyk
+      # Step 5: Scan Docker Image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -36,7 +42,7 @@ jobs:
         with:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-      # Step 5: Fix Vulnerabilities in Docker Image (Optional)
+      # Step 6: Fix Vulnerabilities in Docker Image (Optional)
       - name: Fix Vulnerabilities
         uses: snyk/actions/docker@master
         with:
@@ -45,7 +51,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # Step 6: Push Docker Image to ECR
+      # Step 7: Push Docker Image to ECR
       - name: Push Docker image to ECR
         if: success()
         env:
@@ -82,5 +88,6 @@ jobs:
       - name: Apply Kubernetes manifests to EKS
         run: |
           kubectl apply -f ./config/k8s/argocd-app.yaml
+
 
 
