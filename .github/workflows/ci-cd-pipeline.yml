@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-            # Step 2: Set up Node.js
+      # Step 2: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -76,6 +76,8 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          command: test
+          args: --severity-threshold=low --sarif --json
 
       # Step 9: Fix Vulnerabilities in Docker Image (Optional)
       - name: Fix Vulnerabilities
@@ -123,4 +125,3 @@ jobs:
       - name: Apply Kubernetes manifests to EKS
         run: |
           kubectl apply -f ./config/k8s/argocd-app.yaml
-
