@@ -14,11 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js
+            # Step 2: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Upgrade to Node.js 18 for compatibility
+          node-version: '20'  # Upgrade to Node.js 20 for compatibility
 
       # Step 3: Audit and Fix Node.js Dependencies
       - name: Audit and Fix Node.js Dependencies
