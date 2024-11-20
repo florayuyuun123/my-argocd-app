@@ -14,7 +14,7 @@ RUN npm ci --only=production
 COPY ./src /app
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 8080
 
 # Use a non-root user for better security
 RUN addgroup appgroup && adduser -S appuser -G appgroup
