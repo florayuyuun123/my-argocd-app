@@ -1,7 +1,6 @@
 # Use the latest Alpine base image and Node.js LTS
-FROM alpine:3.3.2-r1
+FROM node:20-alpine AS build
 
-# FROM node:20-alpine AS build
 # Create and set the working directory
 WORKDIR /app
 
