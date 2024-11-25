@@ -34,7 +34,7 @@ jobs:
         run: |
           docker build --pull --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
 
-      # Step 5: Authenticate Docker with AWS ECR
+     # Step 5: Authenticate Docker with AWS ECR
       - name: Authenticate Docker with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
