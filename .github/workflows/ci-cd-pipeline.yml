@@ -6,7 +6,7 @@ on:
       - main  # Trigger on pushes to the main branch
 
 jobs:
-  build:
+  build-and-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,62 +14,44 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js
+      # Step 2: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # Upgrade to Node.js 20 for compatibility
+          node-version: '20'
 
-      # Step 3: Audit and Fix Node.js Dependencies
-      - name: Audit and Fix Node.js Dependencies
+      # Step 3: Install and audit dependencies
+      - name: Install and Audit Dependencies
         run: |
           npm install --prefix ./app
-          npm audit fix --prefix ./app  # Automatically fix vulnerabilities
+          npm audit fix --prefix ./app
 
-      # Step 4: Run Snyk Dependency Scan (Node.js dependencies)
-      - name: Snyk Dependency Scan
-        uses: snyk/actions/node@master
-        with:
-          command: monitor
-          args: --file=app/package.json
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      # Step 5: Update Docker (optional)
-      - name: Update Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install --only-upgrade docker-ce
-
-      # Step 6: Ensure Script Permissions and Run ECR Login Script
-      - name: Ensure Script Permissions and Run ECR Login Script
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        run: |
-          # Ensure script exists
-          if [ ! -f ./scripts/ecr-login.sh ]; then
-            echo "Error: ./scripts/ecr-login.sh not found."
-            exit 1
-          fi
-
-          # Add execute permissions
-          chmod +x ./scripts/ecr-login.sh
-
-          # Execute the script
-          ./scripts/ecr-login.sh
-
-      # Step 7: Build Docker Image
-      - name: Build Docker image
+      # Step 4: Build Docker image
+      - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           docker build --pull --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
 
-      # Step 8: Scan Docker Image with Snyk
+      # Step 5: Authenticate Docker with AWS ECR
+      - name: Authenticate Docker with AWS ECR
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      # Step 6: Push Docker image to ECR
+      - name: Push Docker Image to ECR
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # Step 7: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -77,29 +59,11 @@ jobs:
         with:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
-          args: --severity-threshold=medium --json
-
-      # Step 9: Fix Vulnerabilities in Docker Image (Optional)
-      - name: Fix Vulnerabilities
-        uses: snyk/actions/docker@master
-        with:
-          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-          command: fix
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      # Step 10: Push Docker Image to ECR
-      - name: Push Docker image to ECR
-        if: success()
-        env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-        run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          args: --severity-threshold=medium --json --docker
 
   deploy-to-eks:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-and-scan
 
     steps:
       # Step 1: Check out the code
@@ -119,9 +83,9 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          sed -i "s|my-argocd-app|$ECR_REGISTRY/$ECR_REPOSITORY:latest|g" ./config/k8s/deployment.yaml
+          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:latest|g" ./config/k8s/deployment.yaml
 
-      # Step 4: Apply Kubernetes manifests to Amazon EKS
-      - name: Apply Kubernetes manifests to EKS
+      # Step 4: Deploy to EKS
+      - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -f ./config/k8s/argocd-app.yaml
+          kubectl apply -f ./config/k8s/deployment.yaml
