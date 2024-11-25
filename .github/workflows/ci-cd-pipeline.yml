@@ -41,7 +41,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
         run: |
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+          ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
 
       # Step 6: Push Docker image to ECR
       - name: Push Docker Image to ECR
@@ -89,3 +90,4 @@ jobs:
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f ./config/k8s/deployment.yaml
+
