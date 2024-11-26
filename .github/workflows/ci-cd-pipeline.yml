@@ -35,15 +35,13 @@ jobs:
           npm install --prefix ./app
           npm audit fix --prefix ./app
 
-      # Step 5: Build Docker image with caching
+     # Step 5: Build Docker Image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --cache-from=type=local,src=/tmp/.build-cache \
-                       --cache-to=type=local,dest=/tmp/.build-cache \
-                       -t my-app:latest ./app
+          docker build -t my-app:latest ./app
 
       # Step 6: Tag Docker image with version
       - name: Tag Docker Image
