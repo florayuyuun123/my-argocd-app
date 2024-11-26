@@ -38,7 +38,8 @@ jobs:
       # Step 5: Update vulnerable dependencies
       - name: Update Vulnerable Dependencies
         run: |
-          npm install cross-spawn@latest --prefix ./app
+          npm install cross-spawn@7.0.5 --prefix ./app
+          npm update
 
       # Step 6: Build Docker Image without caching
       - name: Build Docker Image
@@ -46,7 +47,7 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build -t my-app:latest ./app
+          docker build --no-cache -t my-app:latest ./app
 
       # Step 7: Tag Docker image with version
       - name: Tag Docker Image
@@ -121,3 +122,4 @@ jobs:
       - name: Verify Kubernetes Deployment
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
+
