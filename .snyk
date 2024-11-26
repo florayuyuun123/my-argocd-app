@@ -1,0 +1,5 @@
+ignore:
+  SNYK-JS-CROSSSPAWN-8303230:
+    - '*':
+        reason: "Justification for ignoring this vulnerability"
+        expires: "2024-12-31T00:00:00Z"
