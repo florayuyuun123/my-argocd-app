@@ -14,51 +14,73 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js environment
+      # Step 2: Cache Node.js dependencies
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Step 3: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Step 3: Install and audit dependencies
+      # Step 4: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
           npm install --prefix ./app
           npm audit fix --prefix ./app
 
-      # Step 4: Build Docker image
+      # Step 5: Build Docker image with caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --pull --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
+          docker build --cache-from=type=local,src=/tmp/.build-cache \
+                       --cache-to=type=local,dest=/tmp/.build-cache \
+                       -t my-app:latest ./app
 
-     # Step 5: Authenticate Docker with AWS ECR
-      - name: Authenticate Docker with AWS ECR
+      # Step 6: Tag Docker image with version
+      - name: Tag Docker Image
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          VERSION=$(git rev-parse --short HEAD)
+          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # Step 7: Authenticate Docker with AWS ECR
+      - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
         run: |
-          ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-      # Step 6: Push Docker image to ECR
+      # Step 8: Push Docker image to ECR
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:my-app
+          VERSION=$(git rev-parse --short HEAD)
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 7: Scan Docker image with Snyk
+      # Step 9: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:my-app:latest
+          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
           args: --severity-threshold=medium --json --docker
 
@@ -84,10 +106,15 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:latest|g" ./config/k8s/deployment.yaml
+          VERSION=$(git rev-parse --short HEAD)
+          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
 
       # Step 4: Deploy to EKS
-      - name: Apply Kubernetes manifests
+      - name: Deploy to EKS
         run: |
           kubectl apply -f ./config/k8s/deployment.yaml
 
+      # Step 5: Verify Kubernetes Deployment
+      - name: Verify Kubernetes Deployment
+        run: |
+          kubectl rollout status deployment/my-app -n my-namespace
