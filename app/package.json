@@ -2,9 +2,12 @@
   "name": "my-app",
   "version": "1.0.0",
   "dependencies": {
-    "cross-spawn": "^7.0.5"  
+    "cross-spawn": "^7.0.5"
   },
   "scripts": {
     "test": "npm test"
+  },
+  "resolutions": {
+    "cross-spawn": "^7.0.5"
   }
 }
