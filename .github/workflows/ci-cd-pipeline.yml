@@ -47,7 +47,7 @@ jobs:
         run: |
           npm install npm-force-resolutions --save-dev
 
-      # Step 7: Install and Audit Dependencies
+      # Step 7: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
@@ -101,7 +101,7 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
-      # Step 13: Set working directory and run Snyk Docker Image Scan
+      # Step 13: Run Snyk Docker Image Scan in the correct context
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -110,7 +110,8 @@ jobs:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
           args: --severity-threshold=medium --docker
-       
+          working-directory: ./my-argocd-app
+
   deploy-to-eks:
     runs-on: ubuntu-latest
     needs: build-and-scan
