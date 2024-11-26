@@ -141,6 +141,6 @@ jobs:
           kubectl apply -f ./config/k8s/deployment.yaml
 
       # Step 5: Verify Kubernetes Deployment
-      - name: Verification
+      - name: verification
         run: |
           kubectl rollout status deployment/my-app -n my-namespace

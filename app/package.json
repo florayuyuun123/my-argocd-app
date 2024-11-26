@@ -1,21 +1,22 @@
 {
   "name": "my-app",
   "version": "1.0.0",
-  "description": "A sample Node.js project",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "test": "npm test"
-  },
   "dependencies": {
     "express": "^4.17.1",
     "cross-spawn": "^7.0.5"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "npm test",
+    "preinstall": "npx npm-force-resolutions"
   },
   "resolutions": {
-    "semver": "7.5.3"
+    "semver": "^7.5.2",
+    "simple-update-notifier/semver": "^7.5.2",
+    "nodemon/simple-update-notifier/semver": "^7.5.2"
   }
 }
 
