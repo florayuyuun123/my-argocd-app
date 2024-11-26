@@ -110,7 +110,8 @@ jobs:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
           args: --severity-threshold=medium --docker
-          working-directory: ./my-argocd-app
+        run: |
+          snyk test --file=./my-argocd-app/.snyk
 
   deploy-to-eks:
     runs-on: ubuntu-latest
