@@ -34,17 +34,17 @@ jobs:
         run: |
           npm cache clean --force
 
-      # Step 5: Install and audit dependencies
+      # Step 5: Install npm-force-resolutions
+      - name: Install npm-force-resolutions
+        run: |
+          npm install npm-force-resolutions --save-dev
+
+      # Step 6: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
+          npx npm-force-resolutions
           npm install --prefix ./app
           npm audit fix --prefix ./app
-
-      # Step 6: Update vulnerable dependencies
-      - name: Update Vulnerable Dependencies
-        run: |
-          npm install cross-spawn@7.0.5 --prefix ./app
-          npm update
 
       # Step 7: Build Docker Image without caching
       - name: Build Docker Image
@@ -83,16 +83,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 11: Create Snyk policy file to ignore specific vulnerability
-      - name: Create Snyk Policy File
-        run: |
-          echo "ignore:
-            SNYK-JS-CROSSSPAWN-8303230:
-              - '*':
-                  reason: \"Justification for ignoring this vulnerability\"
-                  expires: \"2024-12-31T00:00:00Z\"" > .snyk
-
-      # Step 12: Scan Docker image with Snyk
+      # Step 11: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:

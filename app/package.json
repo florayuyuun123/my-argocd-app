@@ -5,6 +5,7 @@
     "cross-spawn": "^7.0.5"
   },
   "scripts": {
+    "preinstall": "npx npm-force-resolutions",
     "test": "npm test"
   },
   "resolutions": {
