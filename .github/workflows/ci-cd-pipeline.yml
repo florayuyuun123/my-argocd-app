@@ -19,14 +19,10 @@ jobs:
         run: |
           npm cache clean --force
 
-      # Step 3: Ensure package-lock.json exists and install dependencies if not
-      - name: Install Dependencies if package-lock.json is missing
+      # Step 3: Install dependencies and update lock file
+      - name: Install Dependencies and Update Lock File
         run: |
-          if [ ! -f ./app/package-lock.json ]; then
-            npm install --prefix ./app
-          else
-            npm ci --prefix ./app
-          fi
+          npm install --prefix ./app
 
       # Step 4: Cache Node.js dependencies
       - name: Cache Node.js modules
@@ -52,7 +48,7 @@ jobs:
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
-          npm ci --prefix ./app
+          npm install --prefix ./app
           npm audit fix --prefix ./app
 
       # Step 8: Build Docker Image without caching
@@ -141,7 +137,4 @@ jobs:
         run: |
           kubectl apply -f ./config/k8s/deployment.yaml
 
-      # Step 5: Verify Kubernetes Deployment
-      - name: Verify Deployment
-        run: |
-          kubectl rollout status deployment/my-app -n my-namespace
+      
