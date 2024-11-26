@@ -36,6 +36,7 @@ jobs:
 
       # Step 5: Run unit tests
       - name: Run Unit Tests
+        working-directory: ./app
         run: |
           npm install
           npm test
@@ -95,7 +96,7 @@ jobs:
             SNYK-JS-CROSSSPAWN-8303230:
               - '*':
                   reason: 'Temporary ignore until resolved in upstream dependencies'
-                  expires: '2024-12-31T00:00:00Z'" > .snyk
+                  expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
       # Step 12: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
@@ -105,7 +106,7 @@ jobs:
         with:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
-          args: --severity-threshold=medium --docker
+          args: --severity-threshold=medium --docker --file=./my-argocd-app/.snyk
 
   deploy-to-eks:
     runs-on: ubuntu-latest
