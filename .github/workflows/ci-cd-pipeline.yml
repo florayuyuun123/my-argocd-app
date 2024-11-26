@@ -51,7 +51,7 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:my-app:latest
+          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       # Step 7: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
