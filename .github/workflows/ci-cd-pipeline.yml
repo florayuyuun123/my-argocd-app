@@ -101,7 +101,12 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
-      # Step 13: Run Snyk scan using the Snyk CLI explicitly specifying the policy path
+      # Step 13: Install Snyk CLI
+      - name: Install Snyk CLI
+        run: |
+          npm install -g snyk
+
+      # Step 14: Run Snyk scan using the Snyk CLI explicitly specifying the policy path
       - name: Snyk Scan
         run: |
           snyk test --file=./app/package.json --policy-path=./my-argocd-app --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
