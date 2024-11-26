@@ -136,3 +136,4 @@ jobs:
       - name: Verify Kubernetes Deployment
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
+
