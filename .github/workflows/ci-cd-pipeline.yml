@@ -14,14 +14,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Clear npm cache
-      - name: Clear npm Cache
+      # Step 2: Clear npm cache thoroughly
+      - name: Clear npm Cache Thoroughly
         run: |
           npm cache clean --force
+          npm cache verify
 
-      # Step 3: Install dependencies and update lock file
-      - name: Install Dependencies and Update Lock File
+      # Step 3: Regenerate package-lock.json and node_modules
+      - name: Regenerate package-lock.json and node_modules
         run: |
+          rm -rf ./app/package-lock.json ./app/node_modules
+          npm set registry https://registry.npmjs.org/
           npm install --prefix ./app
 
       # Step 4: Cache Node.js dependencies
@@ -137,4 +140,7 @@ jobs:
         run: |
           kubectl apply -f ./config/k8s/deployment.yaml
 
-      
+      # Step 5: Verify Kubernetes Deployment
+      - name: Verification
+        run: |
+          kubectl rollout status deployment/my-app -n my-namespace
