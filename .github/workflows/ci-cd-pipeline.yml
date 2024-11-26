@@ -14,14 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Ensure package-lock.json exists and install dependencies if not
+      # Step 2: Clear npm cache
+      - name: Clear npm Cache
+        run: |
+          npm cache clean --force
+
+      # Step 3: Ensure package-lock.json exists and install dependencies if not
       - name: Install Dependencies if package-lock.json is missing
         run: |
           if [ ! -f ./app/package-lock.json ]; then
             npm install --prefix ./app
+          else
+            npm ci --prefix ./app
           fi
 
-      # Step 3: Cache Node.js dependencies
+      # Step 4: Cache Node.js dependencies
       - name: Cache Node.js modules
         uses: actions/cache@v3
         with:
@@ -30,16 +37,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Step 4: Set up Node.js environment
+      # Step 5: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-
-      # Step 5: Clear npm cache
-      - name: Clear npm Cache
-        run: |
-          npm cache clean --force
 
       # Step 6: Install npm-force-resolutions
       - name: Install npm-force-resolutions
@@ -50,7 +52,7 @@ jobs:
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
-          npm install --prefix ./app
+          npm ci --prefix ./app
           npm audit fix --prefix ./app
 
       # Step 8: Build Docker Image without caching
@@ -90,14 +92,14 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 12: Properly create the Snyk policy file in the root directory
+      # Step 12: Properly create the Snyk policy file in the specified directory
       - name: Create Snyk Policy File
         run: |
           echo "ignore:
             SNYK-JS-CROSSSPAWN-8303230:
               - '*':
                   reason: 'Temporary ignore until resolved in upstream dependencies'
-                  expires: '2024-12-31T00:00:00Z'" > .snyk
+                  expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
       # Step 13: Scan Docker image with Snyk, ensuring context is correct
       - name: Snyk Docker Image Scan
@@ -140,6 +142,6 @@ jobs:
           kubectl apply -f ./config/k8s/deployment.yaml
 
       # Step 5: Verify Kubernetes Deployment
-      - name: verify deployment
+      - name: Verify Deployment
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
