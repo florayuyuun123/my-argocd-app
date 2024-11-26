@@ -70,7 +70,7 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:my-app:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       # Step 9: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
