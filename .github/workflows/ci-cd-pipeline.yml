@@ -36,7 +36,7 @@ jobs:
           npm audit fix --prefix ./app
 
       # Step 5: Update vulnerable dependencies
-      - name: Update vulnerable dependencies
+      - name: Update Vulnerable Dependencies
         run: |
           npm install cross-spawn@latest --prefix ./app
 
@@ -121,4 +121,3 @@ jobs:
       - name: Verify Kubernetes Deployment
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
-
