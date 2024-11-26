@@ -91,9 +91,10 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 12: Create the Snyk policy file in the specified directory
+      # Step 12: Ensure the my-argocd-app directory exists and create the Snyk policy file
       - name: Create Snyk Policy File
         run: |
+          mkdir -p ./my-argocd-app
           echo "ignore:
             SNYK-JS-CROSSSPAWN-8303230:
               - '*':
@@ -109,7 +110,7 @@ jobs:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
           args: --severity-threshold=medium --docker
-        working-directory: ./my-argocd-app
+          working-directory: ./my-argocd-app
 
   deploy-to-eks:
     runs-on: ubuntu-latest
