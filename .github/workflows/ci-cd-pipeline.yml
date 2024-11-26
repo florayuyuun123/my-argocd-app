@@ -91,7 +91,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 12: Ensure the my-argocd-app directory exists and create the Snyk policy file
+      # Step 12: Ensure the root directory exists and create the Snyk policy file
       - name: Create Snyk Policy File
         run: |
           mkdir -p ./my-argocd-app
@@ -101,16 +101,12 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
-      # Step 13: Run Snyk Docker Image Scan in the correct context
-      - name: Snyk Docker Image Scan
-        uses: snyk/actions/docker@master
+      # Step 13: Run Snyk scan using the Snyk CLI
+      - name: Snyk Scan
+        run: |
+          npx snyk test --file=./my-argocd-app/.snyk --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-          command: test
-          args: --severity-threshold=medium --docker
-          working-directory: ./my-argocd-app
 
   deploy-to-eks:
     runs-on: ubuntu-latest
