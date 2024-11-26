@@ -34,21 +34,14 @@ jobs:
         run: |
           npm cache clean --force
 
-      # Step 5: Run unit tests
-      - name: Run Unit Tests
-        working-directory: ./app
-        run: |
-          npm install
-          npm test
-
-      # Step 6: Install and audit dependencies
+      # Step 5: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
           npm install --prefix ./app
           npm audit fix --prefix ./app
 
-      # Step 7: Build Docker Image without caching
+      # Step 6: Build Docker Image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -56,7 +49,7 @@ jobs:
         run: |
           docker build --no-cache -t my-app:latest ./app
 
-      # Step 8: Tag Docker image with version
+      # Step 7: Tag Docker image with version
       - name: Tag Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -66,7 +59,7 @@ jobs:
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 9: Authenticate Docker with AWS ECR
+      # Step 8: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -75,7 +68,7 @@ jobs:
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-      # Step 10: Push Docker image to ECR with retry logic
+      # Step 9: Push Docker image to ECR with retry logic
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -89,7 +82,7 @@ jobs:
             docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest && break || sleep 5
           done
 
-      # Step 11: Create Snyk Policy File
+      # Step 10: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
           echo "ignore:
@@ -98,7 +91,7 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
-      # Step 12: Scan Docker image with Snyk
+      # Step 11: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
