@@ -19,7 +19,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/my-argocd-app/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
@@ -34,22 +34,31 @@ jobs:
         run: |
           npm cache clean --force
 
-      # Step 5: Install and audit dependencies
+      # Step 5: Generate package-lock.json if missing
+      - name: Ensure package-lock.json Exists
+        working-directory: ./my-argocd-app
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install
+          fi
+
+      # Step 6: Install and audit dependencies
       - name: Install and Audit Dependencies
+        working-directory: ./my-argocd-app
         run: |
           npx npm-force-resolutions
-          npm install --prefix ./app
-          npm audit fix --prefix ./app
+          npm install
+          npm audit fix
 
-      # Step 6: Build Docker Image without caching
+      # Step 7: Build Docker Image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --no-cache -t my-app:latest ./app
+          docker build --no-cache -t my-app:latest ./my-argocd-app
 
-      # Step 7: Tag Docker image with version
+      # Step 8: Tag Docker image with version
       - name: Tag Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -59,7 +68,7 @@ jobs:
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 8: Authenticate Docker with AWS ECR
+      # Step 9: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -68,7 +77,7 @@ jobs:
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-      # Step 9: Push Docker image to ECR with retry logic
+      # Step 10: Push Docker image to ECR with retry logic
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -82,7 +91,7 @@ jobs:
             docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest && break || sleep 5
           done
 
-      # Step 10: Create Snyk Policy File
+      # Step 11: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
           echo "ignore:
@@ -91,7 +100,7 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
-      # Step 11: Scan Docker image with Snyk
+      # Step 12: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -135,4 +144,3 @@ jobs:
       - name: Verify Kubernetes Deployment
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
-
