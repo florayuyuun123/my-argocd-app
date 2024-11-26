@@ -91,7 +91,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 12: Properly create the Snyk policy file in the specified directory
+      # Step 12: Properly create the Snyk policy file in the root directory
       - name: Create Snyk Policy File
         run: |
           echo "ignore:
@@ -141,6 +141,6 @@ jobs:
           kubectl apply -f ./config/k8s/deployment.yaml
 
       # Step 5: Verify Kubernetes Deployment
-      - name: verification
+      - name: Deploymeny
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
