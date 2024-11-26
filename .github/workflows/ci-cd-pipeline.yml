@@ -51,7 +51,7 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:my-app:latest
 
       # Step 7: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
@@ -70,7 +70,7 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:my-app:latest
 
       # Step 9: Scan Docker image with Snyk
       - name: Snyk Docker Image Scan
@@ -78,7 +78,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:my-app:latest
           command: test
           args: --severity-threshold=medium --json --docker
 
