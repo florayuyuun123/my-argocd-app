@@ -14,51 +14,54 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Cache Node.js dependencies
+      # Step 2: Ensure package-lock.json exists and install dependencies if not
+      - name: Install Dependencies if package-lock.json is missing
+        run: |
+          if [ ! -f ./app/package-lock.json ]; then
+            npm install --prefix ./app
+          fi
+
+      # Step 3: Cache Node.js dependencies
       - name: Cache Node.js modules
         uses: actions/cache@v3
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/my-argocd-app/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Step 3: Set up Node.js environment
+      # Step 4: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Step 4: Clear npm cache
+      # Step 5: Clear npm cache
       - name: Clear npm Cache
         run: |
           npm cache clean --force
 
-      # Step 5: Generate package-lock.json if missing
-      - name: Ensure package-lock.json Exists
-        working-directory: ./my-argocd-app
+      # Step 6: Install npm-force-resolutions
+      - name: Install npm-force-resolutions
         run: |
-          if [ ! -f package-lock.json ]; then
-            npm install
-          fi
+          npm install npm-force-resolutions --save-dev
 
-      # Step 6: Install and audit dependencies
+      # Step 7: Install and audit dependencies
       - name: Install and Audit Dependencies
-        working-directory: ./my-argocd-app
         run: |
           npx npm-force-resolutions
-          npm install
-          npm audit fix
+          npm install --prefix ./app
+          npm audit fix --prefix ./app
 
-      # Step 7: Build Docker Image without caching
+      # Step 8: Build Docker Image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --no-cache -t my-app:latest ./my-argocd-app
+          docker build --no-cache -t my-app:latest ./app
 
-      # Step 8: Tag Docker image with version
+      # Step 9: Tag Docker image with version
       - name: Tag Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -68,7 +71,7 @@ jobs:
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 9: Authenticate Docker with AWS ECR
+      # Step 10: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -77,30 +80,26 @@ jobs:
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-      # Step 10: Push Docker image to ECR with retry logic
+      # Step 11: Push Docker image to ECR
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           VERSION=$(git rev-parse --short HEAD)
-          for i in {1..3}; do
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION && break || sleep 5
-          done
-          for i in {1..3}; do
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest && break || sleep 5
-          done
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 11: Create Snyk Policy File
+      # Step 12: Properly create the Snyk policy file in the root directory
       - name: Create Snyk Policy File
         run: |
           echo "ignore:
             SNYK-JS-CROSSSPAWN-8303230:
               - '*':
                   reason: 'Temporary ignore until resolved in upstream dependencies'
-                  expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
+                  expires: '2024-12-31T00:00:00Z'" > .snyk
 
-      # Step 12: Scan Docker image with Snyk
+      # Step 13: Scan Docker image with Snyk, ensuring context is correct
       - name: Snyk Docker Image Scan
         uses: snyk/actions/docker@master
         env:
@@ -108,7 +107,7 @@ jobs:
         with:
           image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           command: test
-          args: --severity-threshold=medium --docker --file=./my-argocd-app/.snyk
+          args: --severity-threshold=medium --docker
 
   deploy-to-eks:
     runs-on: ubuntu-latest
@@ -141,6 +140,6 @@ jobs:
           kubectl apply -f ./config/k8s/deployment.yaml
 
       # Step 5: Verify Kubernetes Deployment
-      - name: Verify Kubernetes Deployment
+      - name: verify deployment
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
