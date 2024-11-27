@@ -123,11 +123,13 @@ jobs:
         uses: actions/checkout@v3
 
       # Step 2: Configure kubectl for Amazon EKS
-      - name: Configure kubectl
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+      - name: Setup kubeconfig
         run: |
+          mkdir -p ~/.kube
           echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+        shell: bash
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
       # Step 3: Update Kubernetes manifests with the new image
       - name: Update Kubernetes manifests
