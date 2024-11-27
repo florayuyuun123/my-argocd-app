@@ -11,24 +11,24 @@ jobs:
 
     steps:
       # Step 1: Check out the code
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       # Step 2: Clear npm cache thoroughly
-      - name: Clear npm Cache Thoroughly
+      - name: Clear npm Cache
         run: |
           npm cache clean --force
           npm cache verify
 
       # Step 3: Regenerate package-lock.json and node_modules
-      - name: Regenerate package-lock.json and node_modules
+      - name: Regenerate Dependencies
         run: |
           rm -rf ./app/package-lock.json ./app/node_modules
           npm set registry https://registry.npmjs.org/
           npm install --prefix ./app
 
       # Step 4: Cache Node.js dependencies
-      - name: Cache Node.js modules
+      - name: Cache Node.js Dependencies
         uses: actions/cache@v3
         with:
           path: ~/.npm
@@ -54,7 +54,7 @@ jobs:
           npm install --prefix ./app
           npm audit fix --prefix ./app
 
-      # Step 8: Build Docker Image without caching
+      # Step 8: Build Docker image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -91,7 +91,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 12: Ensure the root directory exists and create the Snyk policy file
+      # Step 12: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
           mkdir -p ./my-argocd-app
@@ -106,8 +106,8 @@ jobs:
         run: |
           npm install -g snyk
 
-      # Step 14: Run Snyk scan using the Snyk CLI explicitly specifying the policy path
-      - name: Snyk Scan
+      # Step 14: Run Snyk scan
+      - name: Run Snyk Scan
         run: |
           snyk test --file=./app/package.json --policy-path=./my-argocd-app --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
@@ -119,20 +119,21 @@ jobs:
 
     steps:
       # Step 1: Check out the code
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Configure kubectl for Amazon EKS
-      - name: Setup kubeconfig
+      # Step 2: Set up kubeconfig
+      - name: Set up kubeconfig
         run: |
           mkdir -p ~/.kube
           echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+          kubectl config view # Optional: Debug kubeconfig content
         shell: bash
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
-      # Step 3: Update Kubernetes manifests with the new image
-      - name: Update Kubernetes manifests
+      # Step 3: Update Kubernetes manifests
+      - name: Update Kubernetes Manifests
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
@@ -140,12 +141,13 @@ jobs:
           VERSION=$(git rev-parse --short HEAD)
           sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
 
-      # Step 4: Deploy to EKS
-      - name: Deploy to EKS
+      # Step 4: Apply Kubernetes deployment
+      - name: Apply Kubernetes Deployment
         run: |
           kubectl apply -f ./config/k8s/deployment.yaml
+        shell: bash
 
       # Step 5: Verify Kubernetes Deployment
-      - name: Deployment
+      - name: Verify Deployment Rollout
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
