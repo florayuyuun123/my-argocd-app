@@ -143,13 +143,16 @@ jobs:
           VERSION=$(git rev-parse --short HEAD)
           sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
 
-      # Step 4: Push Kubernetes manifests to repository for ArgoCD
+      # Step 4: Commit and Push Updated Manifests to Repository
       - name: Commit and Push Updated Manifests
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/florayuyuun123/my-argocd-app.git
           git commit -am "Update deployment.yaml with image $VERSION"
-          git push
+          git push origin main
 
       # Step 5: Trigger ArgoCD Sync
       - name: Trigger ArgoCD Sync
