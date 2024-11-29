@@ -131,7 +131,7 @@ jobs:
           aws-region: us-east-1
       - name: Update kubeconfig for EKS
         run: |
-          aws eks update-kubeconfig --region us-east-1 --name <your-cluster-name>
+          aws eks update-kubeconfig --region us-east-1 --name my-app-cluster
           kubectl get nodes  # Verify connection
 
       # Step 3: Update Kubernetes manifests
