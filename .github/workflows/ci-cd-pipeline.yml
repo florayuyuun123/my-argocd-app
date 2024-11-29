@@ -122,15 +122,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Set up kubeconfig
-      - name: Set up kubeconfig
+      # Step 2: Set up AWS CLI and kubeconfig for EKS
+      - name: Configure AWS CLI and kubeconfig
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Update kubeconfig for EKS
         run: |
-          mkdir -p ~/.kube
-          echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
-          kubectl config view # Optional: Debug kubeconfig content
-        shell: bash
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+          aws eks update-kubeconfig --region us-east-1 --name <your-cluster-name>
+          kubectl get nodes  # Verify connection
 
       # Step 3: Update Kubernetes manifests
       - name: Update Kubernetes Manifests
@@ -141,13 +143,16 @@ jobs:
           VERSION=$(git rev-parse --short HEAD)
           sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
 
-      # Step 4: Apply Kubernetes deployment
-      - name: Apply Kubernetes Deployment
+      # Step 4: Push Kubernetes manifests to repository for ArgoCD
+      - name: Commit and Push Updated Manifests
         run: |
-          kubectl apply -f ./config/k8s/deployment.yaml
-        shell: bash
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git commit -am "Update deployment.yaml with image $VERSION"
+          git push
 
-      # Step 5: Verify Kubernetes Deployment
-      - name: Verify Deployment Rollout
+      # Step 5: Trigger ArgoCD Sync
+      - name: Trigger ArgoCD Sync
         run: |
-          kubectl rollout status deployment/my-app -n my-namespace
+          argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK
+          argocd app sync my-app
