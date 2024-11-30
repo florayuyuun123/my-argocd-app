@@ -159,12 +159,3 @@ jobs:
         run: |
           argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK
           argocd app sync my-app
-
-      # Step 6: Add Debugging Steps
-      - name: Debug Environment
-        run: |
-          echo "Checking Git Configuration"
-          git config --list
-          echo "Checking Environment Variables"
-          printenv
-
