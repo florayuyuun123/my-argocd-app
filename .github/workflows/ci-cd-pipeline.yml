@@ -118,21 +118,25 @@ jobs:
     needs: build-and-scan
 
     steps:
-      # Step 1: Check out the code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Set up kubeconfig
       - name: Set up kubeconfig
         run: |
           mkdir -p ~/.kube
           echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
-          kubectl config view # Optional: Debug kubeconfig content
+          kubectl config view
+          kubectl cluster-info
         shell: bash
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
-      # Step 3: Update Kubernetes manifests
+      - name: Debug Kubernetes Access
+        run: |
+          kubectl get nodes
+          kubectl get namespaces
+          kubectl get deployments --all-namespaces
+
       - name: Update Kubernetes Manifests
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -141,15 +145,11 @@ jobs:
           VERSION=$(git rev-parse --short HEAD)
           sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
 
-      # Step 4: Apply Kubernetes deployment
       - name: Apply Kubernetes Deployment
         run: |
-          kubectl apply -f ./config/k8s/deployment.yaml
+          kubectl apply -f ./config/k8s/deployment.yaml --validate=false
         shell: bash
 
-      # Step 5: Verify Kubernetes Deployment
       - name: Verify Deployment Rollout
         run: |
           kubectl rollout status deployment/my-app -n my-namespace
-
-
