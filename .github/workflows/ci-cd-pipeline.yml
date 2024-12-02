@@ -49,7 +49,7 @@ jobs:
       - name: Argo CD Login and Sync
         run: |
           for i in {1..5}; do
-            argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK --grpc-web && break || sleep 15;
+            argocd login https://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com/applications --username admin --password ws15tEtt-wcBZ3OK --grpc-web && break || sleep 15;
           done
           argocd app sync my-app --grpc-web --timeout 300
         env:
