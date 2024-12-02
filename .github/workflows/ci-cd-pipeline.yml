@@ -122,12 +122,12 @@ jobs:
 
       - name: List Directory Contents
         run: |
-          ls -R ./config/kubeconfig/
+          ls -R my-argocd-app/config/kubeconfig/
 
       - name: Set up kubeconfig
         run: |
           mkdir -p ~/.kube
-          cp ./config/kubeconfig/kubeconfig.yaml ~/.kube/config
+          cp my-argocd-app/config/kubeconfig/kubeconfig.yaml ~/.kube/config
           kubectl config view
           kubectl cluster-info
         shell: bash
