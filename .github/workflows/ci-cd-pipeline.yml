@@ -49,29 +49,26 @@ jobs:
       - name: Argo CD Login and Sync
         run: |
           for i in {1..5}; do
-            argocd login https://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com/applications --username admin --password ws15tEtt-wcBZ3OK --grpc-web && break || sleep 15;
+            argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK --grpc-web --insecure --timeout 300 && break || sleep 15;
           done
-          argocd app sync my-app --grpc-web --timeout 300
+          argocd app sync my-app --grpc-web --insecure --timeout 300
         env:
           AWS_DEFAULT_REGION: us-east-1
           AWS_REGION: us-east-1
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # Step 2: Clear npm cache thoroughly
       - name: Clear npm Cache
         run: |
           npm cache clean --force
           npm cache verify
 
-      # Step 3: Regenerate package-lock.json and node_modules
       - name: Regenerate Dependencies
         run: |
           rm -rf ./app/package-lock.json ./app/node_modules
           npm set registry https://registry.npmjs.org/
           npm install --prefix ./app
 
-      # Step 4: Cache Node.js dependencies
       - name: Cache Node.js Dependencies
         uses: actions/cache@v3
         with:
@@ -80,25 +77,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Step 5: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Step 6: Install npm-force-resolutions
       - name: Install npm-force-resolutions
         run: |
           npm install npm-force-resolutions --save-dev
 
-      # Step 7: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
           npm install --prefix ./app
           npm audit fix --prefix ./app
 
-      # Step 8: Build Docker image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -106,7 +99,6 @@ jobs:
         run: |
           docker build --no-cache -t my-app:latest ./app
 
-      # Step 9: Tag Docker image with version
       - name: Tag Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -116,7 +108,6 @@ jobs:
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 10: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -125,7 +116,6 @@ jobs:
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-      # Step 11: Push Docker image to ECR
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -135,7 +125,6 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 12: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
           mkdir -p ./my-argocd-app
@@ -145,12 +134,10 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
 
-      # Step 13: Install Snyk CLI
       - name: Install Snyk CLI
         run: |
           npm install -g snyk
 
-      # Step 14: Run Snyk scan
       - name: Run Snyk Scan
         run: |
           snyk test --file=./app/package.json --policy-path=./my-argocd-app --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
