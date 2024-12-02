@@ -124,12 +124,10 @@ jobs:
       - name: Set up kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "$KUBE_CONFIG_DATA" | base64 --decode > ~/.kube/config
+          cp config/kubeconfig/kubeconfig.yaml ~/.kube/config
           kubectl config view
           kubectl cluster-info
         shell: bash
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
       - name: Debug Kubernetes Access
         run: |
