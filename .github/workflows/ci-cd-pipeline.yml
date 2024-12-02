@@ -117,27 +117,23 @@ jobs:
     needs: build-and-scan
 
     steps:
+      # Step 1: Check out the code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: List Directory Contents
+      # Step 2: Set up AWS CLI and kubeconfig for EKS
+      - name: Configure AWS CLI and kubeconfig
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Update kubeconfig for EKS
         run: |
-          ls -R my-argocd-app/config/kubeconfig/
+          aws eks update-kubeconfig --region us-east-1 --name my-app-cluster
+          kubectl get nodes  # Verify connection
 
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          cp ./config/kubeconfig/kubeconfig.yaml ~/.kube/config
-          kubectl config view
-          kubectl cluster-info
-        shell: bash
-
-      - name: Debug Kubernetes Access
-        run: |
-          kubectl get nodes
-          kubectl get namespaces
-          kubectl get deployments --all-namespaces
-
+      # Step 3: Update Kubernetes manifests
       - name: Update Kubernetes Manifests
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -145,12 +141,16 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
-
-      - name: Apply Kubernetes Deployment
+      # Step 4: Trigger ArgoCD Sync
+      - name: Trigger ArgoCD Sync
         run: |
-          kubectl apply -f ./config/k8s/deployment.yaml --validate=false
-        shell: bash
+          argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK
+          argocd app sync my-app
 
-      - name: Verify Deployment Rollout
+      # Step 5: Add Debugging Steps
+      - name: Debug Environment
         run: |
-          kubectl rollout status deployment/my-app -n my-namespace
+          echo "Checking Git Configuration"
+          git config --list
+          echo "Checking Environment Variables"
+          printenv
