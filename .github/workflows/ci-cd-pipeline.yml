@@ -154,22 +154,19 @@ jobs:
           aws eks update-kubeconfig --region us-east-1 --name my-app-cluster
           kubectl get nodes  # Verify connection
 
-      # Step 5: Login to ArgoCD with Retry
+      # Step 5: Login to ArgoCD with Persistent Session
       - name: ArgoCD Login
         run: |
           echo "Logging into ArgoCD..."
-          for i in {1..5}; do
-            argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
-              --username admin \
-              --password ws15tEtt-wcBZ3OK \
-              --grpc-web \
-              --insecure \
-              --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
-              --timeout 60 && break || sleep 15
-          done
+          argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+            --username admin \
+            --password ws15tEtt-wcBZ3OK \
+            --grpc-web \
+            --insecure \
+            --timeout 60
 
-      # Step 6: Verify Login Session
-      - name: Verify ArgoCD Login
+      # Step 6: Verify ArgoCD Login Session
+      - name: Verify ArgoCD Session
         run: |
           echo "Verifying ArgoCD session..."
           argocd account get-user-info \
