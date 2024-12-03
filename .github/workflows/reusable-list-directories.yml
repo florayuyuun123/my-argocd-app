@@ -1,0 +1,29 @@
+# .github/workflows/reusable-list-directories.yml
+name: Reusable List Directories
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        required: false
+        type: array
+        default: ["."] # Default to the root directory
+
+jobs:
+  list-directories:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: List Directories
+        run: |
+          for path in ${{ inputs.paths }}; do
+            echo "Listing contents of $path:"
+            if [ -d "$path" ]; then
+              ls -R "$path"
+            else
+              echo "$path directory not found."
+            fi
+          done

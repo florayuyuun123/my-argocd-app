@@ -13,14 +13,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Directory Listing
+        uses: ./.github/workflows/reusable-list-directories.yml
+        with:
+          paths:
+            - my-argocd-app
+            - my-argocd-app/config
+            - my-argocd-app/config/kubeconfig
+
       - name: Install Argo CD CLI
         run: |
           echo "Installing Argo CD CLI..."
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
-
-      - name: Directory Listing
-        uses: ./.github/workflows/reusable-list-directories.yml
 
       - name: Argo CD Login and Sync
         run: |
@@ -126,6 +131,11 @@ jobs:
 
       - name: Directory Listing
         uses: ./.github/workflows/reusable-list-directories.yml
+        with:
+          paths:
+            - my-argocd-app
+            - my-argocd-app/config
+            - my-argocd-app/config/kubeconfig
 
       - name: Set up kubeconfig
         run: |
