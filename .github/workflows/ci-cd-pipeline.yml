@@ -160,7 +160,7 @@ jobs:
           echo "Logging into ArgoCD..."
           argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
             --username admin \
-            --password ws15tEtt-wcBZ3OK \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
             --grpc-web \
             --insecure  # Bypass SSL certificate verification
 
