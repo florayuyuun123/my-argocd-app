@@ -6,8 +6,8 @@ on:
     inputs:
       paths:
         required: false
-        type: array
-        default: ["."] # Default to the root directory
+        type: string # Changed to string
+        default: '["."]' # Default is a JSON string representing an array
 
 jobs:
   list-directories:
@@ -19,7 +19,9 @@ jobs:
 
       - name: List Directories
         run: |
-          for path in ${{ inputs.paths }}; do
+          echo "Parsing paths input..."
+          paths=$(echo '${{ inputs.paths }}' | jq -r '.[]') # Parse the JSON string into an array
+          for path in $paths; do
             echo "Listing contents of $path:"
             if [ -d "$path" ]; then
               ls -R "$path"
@@ -27,3 +29,4 @@ jobs:
               echo "$path directory not found."
             fi
           done
+        shell: bash
