@@ -164,6 +164,7 @@ jobs:
               --password ws15tEtt-wcBZ3OK \
               --grpc-web \
               --insecure \
+              --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
               --timeout 60 && break || sleep 15
           done
 
@@ -171,7 +172,11 @@ jobs:
       - name: Trigger ArgoCD Sync
         run: |
           echo "Synchronizing ArgoCD application..."
-          argocd app sync my-app --grpc-web --insecure --timeout 300
+          argocd app sync my-app \
+            --grpc-web \
+            --insecure \
+            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+            --timeout 300
 
       # Step 7: Add Debugging Steps
       - name: Debug Environment
