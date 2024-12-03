@@ -140,7 +140,7 @@ jobs:
       - name: Verify ArgoCD Server Connectivity
         run: |
           echo "Testing connectivity to ArgoCD server..."
-          curl -I http://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
+          curl -I https://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --insecure
 
       # Step 4: Configure AWS CLI and kubeconfig for EKS
       - name: Configure AWS CLI and kubeconfig
@@ -162,7 +162,7 @@ jobs:
             --username admin \
             --password ws15tEtt-wcBZ3OK \
             --grpc-web \
-            --insecure \
+            --insecure  # Bypass SSL certificate verification
 
       # Step 6: Verify ArgoCD Login Session
       - name: Verify ArgoCD Session
@@ -180,7 +180,7 @@ jobs:
           argocd app sync my-app \
             --grpc-web \
             --insecure \
-            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
 
       # Step 8: Add Debugging Steps
       - name: Debug Environment
