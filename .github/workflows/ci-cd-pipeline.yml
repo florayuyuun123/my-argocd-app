@@ -173,14 +173,20 @@ jobs:
             --grpc-web \
             --insecure
 
-      # Step 7: Trigger ArgoCD Sync with Debug
+      # Step 7: Trigger ArgoCD Sync with Application Status Check
       - name: Trigger ArgoCD Sync
         run: |
           echo "Synchronizing ArgoCD application..."
+          # Check application status first
+          argocd app get my-app \
+            --grpc-web \
+            --insecure \
+            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
+          # Proceed with sync
           argocd app sync my-app \
             --grpc-web \
             --insecure \
-            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
 
       # Step 8: Add Debugging Steps
       - name: Debug Environment
