@@ -10,83 +10,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
-        with:
-          description: "Checkout the repository code."
 
-      - name: Install Argo CD CLI
+      # Step 2: Install ArgoCD CLI
+      - name: Install ArgoCD CLI
         run: |
+          echo "Installing ArgoCD CLI..."
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
-        with:
-          description: "Download and install the Argo CD CLI."
 
-      - name: List Top-Level Directory
-        run: |
-          ls -R
-        with:
-          description: "List all files and directories at the top level of the repository."
-
-      - name: List my-argocd-app Directory
-        run: |
-          if [ -d "my-argocd-app" ]; then
-            ls -R my-argocd-app/
-          else
-            echo "my-argocd-app directory not found."
-          fi
-        with:
-          description: "List all files and directories within the my-argocd-app directory."
-
-      - name: List Config Directory
-        run: |
-          if [ -d "my-argocd-app/config" ]; then
-            ls -R my-argocd-app/config/
-          else
-            echo "my-argocd-app/config directory not found."
-          fi
-        with:
-          description: "List all files and directories within the config directory inside my-argocd-app."
-
-      - name: List kubeconfig Directory
-        run: |
-          if [ -d "my-argocd-app/config/kubeconfig" ]; then
-            ls -R my-argocd-app/config/kubeconfig/
-          else
-            echo "my-argocd-app/config/kubeconfig directory not found."
-          fi
-        with:
-          description: "List all files and directories within the kubeconfig directory inside config."
-
-      - name: Argo CD Login and Sync
-        run: |
-          for i in {1..5}; do
-            argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK --grpc-web --insecure && break || sleep 15;
-          done
-          argocd app sync my-app --grpc-web --insecure
-        env:
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        with:
-          description: "Log into Argo CD server and synchronize the application, retrying up to five times if it fails."
-
+      # Step 3: Clear npm cache thoroughly
       - name: Clear npm Cache
         run: |
           npm cache clean --force
           npm cache verify
-        with:
-          description: "Clear the npm cache to prevent issues caused by stale cache data."
 
+      # Step 4: Regenerate package-lock.json and node_modules
       - name: Regenerate Dependencies
         run: |
           rm -rf ./app/package-lock.json ./app/node_modules
           npm set registry https://registry.npmjs.org/
           npm install --prefix ./app
-        with:
-          description: "Remove package-lock.json and node_modules to ensure a fresh installation of dependencies. Set npm registry and install dependencies."
 
+      # Step 5: Cache Node.js dependencies
       - name: Cache Node.js Dependencies
         uses: actions/cache@v3
         with:
@@ -94,37 +42,34 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-          description: "Cache npm dependencies to speed up subsequent workflow runs."
 
+      # Step 6: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-          description: "Set up the Node.js environment with the specified version."
 
+      # Step 7: Install npm-force-resolutions
       - name: Install npm-force-resolutions
         run: |
           npm install npm-force-resolutions --save-dev
-        with:
-          description: "Install npm-force-resolutions to resolve any dependency conflicts automatically."
 
+      # Step 8: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
           npm install --prefix ./app
           npm audit fix --prefix ./app
-        with:
-          description: "Apply forced resolutions, install dependencies, and run npm audit fix to address security vulnerabilities."
 
+      # Step 9: Build Docker image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           docker build --no-cache -t my-app:latest ./app
-        with:
-          description: "Build the Docker image for the application without using the cache to ensure a clean build."
 
+      # Step 10: Tag Docker image with version
       - name: Tag Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -133,9 +78,8 @@ jobs:
           VERSION=$(git rev-parse --short HEAD)
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        with:
-          description: "Tag the Docker image with the short commit hash and the latest tag for versioning."
 
+      # Step 11: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -143,9 +87,8 @@ jobs:
           AWS_REGION: us-east-1
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-        with:
-          description: "Authenticate Docker with AWS Elastic Container Registry (ECR) using provided credentials."
 
+      # Step 12: Push Docker image to ECR
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -154,9 +97,8 @@ jobs:
           VERSION=$(git rev-parse --short HEAD)
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        with:
-          description: "Push the tagged Docker image to AWS ECR for deployment."
 
+      # Step 13: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
           mkdir -p ./my-argocd-app
@@ -165,59 +107,66 @@ jobs:
               - '*':
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
-        with:
-          description: "Create a Snyk policy file to manage dependency vulnerabilities."
 
+      # Step 14: Install Snyk CLI
       - name: Install Snyk CLI
         run: |
           npm install -g snyk
-        with:
-          description: "Install the Snyk CLI globally for dependency vulnerability scanning."
 
+      # Step 15: Run Snyk scan
       - name: Run Snyk Scan
         run: |
           snyk test --file=./app/package.json --policy-path=./my-argocd-app --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          description: "Run a Snyk scan on the application dependencies to detect vulnerabilities."
 
   deploy-to-eks:
     runs-on: ubuntu-latest
     needs: build-and-scan
 
     steps:
+      # Step 1: Check out the code
       - name: Checkout Code
         uses: actions/checkout@v3
-        with:
-          description: "Checkout the repository code."
 
-      - name: List Top-Level Directory
+      # Step 2: Install ArgoCD CLI
+      - name: Install ArgoCD CLI
         run: |
-          ls -R
-        with:
-          description: "List all files and directories at the top level of the repository."
+          echo "Installing ArgoCD CLI..."
+          sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          sudo chmod +x /usr/local/bin/argocd
 
-      - name: List my-argocd-app Directory
-        run: |
-          if [ -d "my-argocd-app" ]; then
-            ls -R my-argocd-app/
-          else
-            echo "my-argocd-app directory not found."
-          fi
+      # Step 3: Set up AWS CLI and kubeconfig for EKS
+      - name: Configure AWS CLI and kubeconfig
+        uses: aws-actions/configure-aws-credentials@v3
         with:
-          description: "List all files and directories within the my-argocd-app directory."
-
-      - name: List Config Directory
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Update kubeconfig for EKS
         run: |
-          if [ -d "my-argocd-app/config" ]; then
-            ls -R my-argocd-app/config/
-          else
-            echo "my-argocd-app/config directory not found."
-          fi
-        with:
-          description: "List all files and directories within the config directory inside my-argocd-app."
+          aws eks update-kubeconfig --region us-east-1 --name my-app-cluster
+          kubectl get nodes  # Verify connection
 
-      - name: List kubeconfig Directory
+      # Step 4: Update Kubernetes manifests
+      - name: Update Kubernetes Manifests
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          if [_{{{CITATION{{{_1{](https://github.com/Uvacoder/what-if-grid/tree/5ecb22fa006fad29abafe356bc95e1a929069d97/notes%2Fsnippets%2F2020-10-07-github-actions.md)
+          VERSION=$(git rev-parse --short HEAD)
+          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
+
+      # Step 5: Trigger ArgoCD Sync
+      - name: Trigger ArgoCD Sync
+        run: |
+          argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK
+          argocd app sync my-app
+
+      # Step 6: Add Debugging Steps
+      - name: Debug Environment
+        run: |
+          echo "Checking Git Configuration"
+          git config --list
+          echo "Checking Environment Variables"
+          printenv
