@@ -136,7 +136,13 @@ jobs:
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
 
-      # Step 3: Set up AWS CLI and kubeconfig for EKS
+      # Step 3: Test ArgoCD Server Connectivity
+      - name: Verify ArgoCD Server Connectivity
+        run: |
+          echo "Testing connectivity to ArgoCD server..."
+          curl -I http://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
+
+      # Step 4: Configure AWS CLI and kubeconfig for EKS
       - name: Configure AWS CLI and kubeconfig
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -148,22 +154,26 @@ jobs:
           aws eks update-kubeconfig --region us-east-1 --name my-app-cluster
           kubectl get nodes  # Verify connection
 
-      # Step 4: Update Kubernetes manifests
-      - name: Update Kubernetes Manifests
-        env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      # Step 5: Login to ArgoCD with Retry
+      - name: ArgoCD Login
         run: |
-          VERSION=$(git rev-parse --short HEAD)
-          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION|g" ./config/k8s/deployment.yaml
+          echo "Logging into ArgoCD..."
+          for i in {1..5}; do
+            argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+              --username admin \
+              --password ws15tEtt-wcBZ3OK \
+              --grpc-web \
+              --insecure \
+              --timeout 60 && break || sleep 15
+          done
 
-      # Step 5: Trigger ArgoCD Sync
+      # Step 6: Trigger ArgoCD Sync
       - name: Trigger ArgoCD Sync
         run: |
-          argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --username admin --password ws15tEtt-wcBZ3OK
-          argocd app sync my-app
+          echo "Synchronizing ArgoCD application..."
+          argocd app sync my-app --grpc-web --insecure --timeout 300
 
-      # Step 6: Add Debugging Steps
+      # Step 7: Add Debugging Steps
       - name: Debug Environment
         run: |
           echo "Checking Git Configuration"
