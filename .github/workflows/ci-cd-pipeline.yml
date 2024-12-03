@@ -16,12 +16,8 @@ jobs:
       - name: Directory Listing
         uses: ./.github/workflows/reusable-list-directories.yml
         with:
-          paths: |
-            [
-              "my-argocd-app",
-              "my-argocd-app/config",
-              "my-argocd-app/config/kubeconfig"
-            ]
+          paths: '["my-argocd-app", "my-argocd-app/config", "my-argocd-app/config/kubeconfig"]'
+
 
       - name: Install Argo CD CLI
         run: |
@@ -134,12 +130,7 @@ jobs:
       - name: Directory Listing
         uses: ./.github/workflows/reusable-list-directories.yml
         with:
-          paths: |
-            [
-              "my-argocd-app",
-              "my-argocd-app/config",
-              "my-argocd-app/config/kubeconfig"
-            ]
+          paths: '["my-argocd-app", "my-argocd-app/config", "my-argocd-app/config/kubeconfig"]'
 
       - name: Set up kubeconfig
         run: |
