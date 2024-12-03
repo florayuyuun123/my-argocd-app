@@ -163,7 +163,6 @@ jobs:
             --password ws15tEtt-wcBZ3OK \
             --grpc-web \
             --insecure \
-            --timeout 60
 
       # Step 6: Verify ArgoCD Login Session
       - name: Verify ArgoCD Session
@@ -182,7 +181,6 @@ jobs:
             --grpc-web \
             --insecure \
             --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
-            --timeout 300
 
       # Step 8: Add Debugging Steps
       - name: Debug Environment
