@@ -168,7 +168,16 @@ jobs:
               --timeout 60 && break || sleep 15
           done
 
-      # Step 6: Trigger ArgoCD Sync
+      # Step 6: Verify Login Session
+      - name: Verify ArgoCD Login
+        run: |
+          echo "Verifying ArgoCD session..."
+          argocd account get-user-info \
+            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+            --grpc-web \
+            --insecure
+
+      # Step 7: Trigger ArgoCD Sync
       - name: Trigger ArgoCD Sync
         run: |
           echo "Synchronizing ArgoCD application..."
@@ -178,7 +187,7 @@ jobs:
             --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
             --timeout 300
 
-      # Step 7: Add Debugging Steps
+      # Step 8: Add Debugging Steps
       - name: Debug Environment
         run: |
           echo "Checking Git Configuration"
