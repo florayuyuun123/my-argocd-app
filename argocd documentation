@@ -1,0 +1,259 @@
+# Install AWS CLI on your Ubuntu EC2 instance:
+
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+    aws --version
+     
+# Configure AWS
+aws configure
+Enter:
+Region: us-west-2
+Access Key ID/Secret Key: Use your AWS credentials.
+Default Output: json.
+
+# Install kubectl (Kubernetes CLI to manage clusters):
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+
+# Install eksctl (to create EKS clusters easily):
+
+    curl -LO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
+    tar -xzf eksctl_Linux_amd64.tar.gz
+    sudo mv eksctl /usr/local/bin/
+    eksctl version
+    
+# Install ArgoCD CLI:
+
+sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+sudo chmod +x /usr/local/bin/argocd
+argocd version
+
+# Step 3: Create an EKS Cluster
+Why?
+You need a Kubernetes cluster to run ArgoCD and deploy applications.
+
+aws eks create-cluster \
+    --name flo-argo-cluster \
+    --region us-west-2 \
+    --role-arn arn:aws:iam::642588679360:role/flora-iamrole-nodegroup \
+    --resources-vpc-config subnetIds=subnet-0545b32161e7a077a,subnet-07ab1fe52e2842780,securityGroupIds=sg-0fc0dcbf7d563f051
+
+# Verify the cluster is running:
+
+kubectl get nodes
+
+# Creat Node Group Creation
+
+aws eks create-nodegroup \
+    --cluster-name flo-argo-cluster \
+    --nodegroup-name flo-nodegroup \
+    --node-role arn:aws:iam::642588679360:role/flora-AmazonEKSAutoClusterRole \
+    --subnets subnet-0545b32161e7a077a subnet-07ab1fe52e2842780 \
+    --scaling-config minSize=1,maxSize=1,desiredSize=1 \
+    --instance-types t3.medium \
+    --disk-size 20 \
+    --region us-west-2
+
+# Confirm the node group status:
+
+aws eks describe-nodegroup --cluster-name flo-argo-cluster --nodegroup-name flo-nodegroup --region us-west-2
+
+# Verify nodes are added to the cluster
+
+kubectl get nodes
+
+eksctl get nodegroup --cluster flo-argo-cluster --region us-west-2
+
+# Update kubeconfig (connect kubectl to your EKS cluster):
+
+aws eks --region us-west-2 update-kubeconfig --name my-cluster
+
+# Verify Policies Attached to the Cluster Role
+AmazonEKSClusterPolicy
+AmazonEKSVPCResourceController
+
+# Attach Missing Policies (if any)
+
+aws iam attach-role-policy --role-name flora-iamrole-nodegroup --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+aws iam attach-role-policy --role-name flora-iamrole-nodegroup --policy-arn arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+
+# Ensure the IAM role flora-AmazonEKSAutoClusterRole has the following managed policies attached:
+
+AmazonEKSWorkerNodePolicy
+AmazonEC2ContainerRegistryReadOnly
+AmazonSSMManagedInstanceCore
+
+# Attach Policies Using the AWS CLI:
+
+aws iam attach-role-policy --role-name flora-AmazonEKSAutoClusterRole --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+aws iam attach-role-policy --role-name flora-AmazonEKSAutoClusterRole --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+aws iam attach-role-policy --role-name flora-AmazonEKSAutoClusterRole --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+# Validate the Cluster and Node Group
+# Check the cluster status
+
+aws eks describe-cluster --name flo-argo-cluster --region us-west-2
+
+# Check the node group status:
+
+aws eks describe-nodegroup \
+    --cluster-name flo-argo-cluster \
+    --nodegroup-name flo-nodegroup \
+    --region us-west-2
+
+aws eks describe-nodegroup --cluster-name flo-argo-cluster --nodegroup-name flo-nodegroup --region us-west-2 --query "nodegroup.status"
+
+# Delete cluster
+
+eksctl delete cluster --name flo-argo-cluster --region us-west-2
+
+# Verify nodes in the cluster:
+
+kubectl get nodes
+
+# Investigate the Node Group Failure
+
+aws eks describe-nodegroup \
+    --cluster-name flo-argo-cluster \
+    --nodegroup-name flo-nodegroup \
+    --region us-west-2 \
+    --query "nodegroup.statusReason"
+
+# Delete the failed node group:
+
+aws eks delete-nodegroup \
+    --cluster-name flo-argo-cluster \
+    --nodegroup-name flo-nodegroup \
+    --region us-west-2
+
+# The error indicates that kubectl is unable to connect to the Kubernetes API server because it’s trying to access a local server (localhost:8080) instead of the EKS cluster's API endpoint. This typically happens when the kubeconfig is not correctly set up or is pointing to the wrong cluster   
+Step 1: Verify kubeconfig Setup
+Ensure your kubeconfig file is correctly configured to point to your EKS cluster.
+
+Update kubeconfig for Your EKS Cluster: Use the following AWS CLI command to generate the proper kubeconfig:
+
+    aws eks update-kubeconfig --region us-west-2 --name flo-argo-cluster
+
+Check kubeconfig Location: The updated kubeconfig is typically stored in ~/.kube/config. Verify it:
+
+    cat ~/.kube/config
+# install the VPC CNI plugin manifest
+
+kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.12.0/config/master/aws-k8s-cni.yaml
+
+# Verify the installation:
+
+    kubectl get pods -n kube-system
+# Check IPAM Logs
+
+kubectl logs -n kube-system aws-node-tsjr6 -c aws-vpc-cni-init
+
+# Check Node Conditions
+Inspect the node to identify why it remains NotReady:
+
+    kubectl describe node ip-10-0-2-100.us-west-2.compute.internal
+
+
+
+
+
+# USE MINIKUBE INSTEAD
+
+# Plan for Implementing the CI/CD Pipeline
+
+Steps to Set Up the Environment on Ubuntu
+# 1. Install Docker on Ubuntu
+Docker is essential for containerization.
+Install Docker
+Run the following commands to install Docker on your machine:
+
+sudo apt update
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add Docker repository
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+
+# Verify Docker
+# Check if Docker is running:
+
+sudo systemctl status docker
+
+# Add your user to the docker group so you don’t need sudo for Docker commands:
+
+sudo usermod -aG docker ${USER}
+su - ${USER}
+
+# 2. Install Kubernetes (Minikube or K3s)
+To run Kubernetes locally on Ubuntu, use Minikube or K3s. I'll proceed with Minikube here.
+
+# Install kubectl (Kubernetes CLI)
+
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+Verify kubectl:
+
+kubectl version --client
+
+Install Minikube
+Minikube sets up a lightweight local Kubernetes cluster.
+
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+Start Minikube with the Docker driver:
+
+minikube start --driver=docker
+
+Verify Minikube and Kubernetes are running:
+
+kubectl get nodes
+
+# 3. Install ArgoCD
+Create a Namespace for ArgoCD
+
+kubectl create namespace argocd
+
+Install ArgoCD
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+Verify ArgoCD Pods
+
+kubectl get pods -n argocd
+
+# 4. Access ArgoCD UI
+Expose the ArgoCD service using port forwarding:
+
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+Open a browser and go to:
+
+https://localhost:8080
+
+Log in to ArgoCD
+Username: admin
+Password: The ArgoCD initial password can be obtained via:
+
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+
+
+# 5. Test Application
+
+Get the Minikube IP:
+
+minikube service my-app-service --url
+
+Access your app using:
+
+http://<minikube-ip>:30001
