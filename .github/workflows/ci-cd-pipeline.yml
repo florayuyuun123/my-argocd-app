@@ -67,7 +67,7 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build --no-cache -t my-app:latest ./app
+          docker build --no-cache -t infinisys-webapp:latest ./app
 
       # Step 10: Tag Docker image with version
       - name: Tag Docker Image
@@ -76,8 +76,8 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           VERSION=$(git rev-parse --short HEAD)
-          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker tag my-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag infinisys-webapp:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker tag infinisys-webapp:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       # Step 11: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
@@ -101,12 +101,12 @@ jobs:
       # Step 13: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
-          mkdir -p ./my-argocd-app
+          mkdir -p ./infinisys-webapp
           echo "ignore:
             SNYK-JS-CROSSSPAWN-8303230:
               - '*':
                   reason: 'Temporary ignore until resolved in upstream dependencies'
-                  expires: '2024-12-31T00:00:00Z'" > ./my-argocd-app/.snyk
+                  expires: '2024-12-31T00:00:00Z'" > ./infinisys-webapp/.snyk
 
       # Step 14: Install Snyk CLI
       - name: Install Snyk CLI
@@ -116,7 +116,7 @@ jobs:
       # Step 15: Run Snyk scan
       - name: Run Snyk Scan
         run: |
-          snyk test --file=./app/package.json --policy-path=./my-argocd-app --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          snyk test --file=./app/package.json --policy-path=./infinisys-webapp --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -151,7 +151,8 @@ jobs:
           aws-region: us-east-1
       - name: Update kubeconfig for EKS
         run: |
-          aws eks update-kubeconfig --region us-east-1 --name my-app-cluster
+          aws eks update-kubeconfig --region us-east-1 --name infinisys-eks-cluster
+
           kubectl get nodes  # Verify connection
 
       # Step 5: Login to ArgoCD with Persistent Session
@@ -178,12 +179,12 @@ jobs:
         run: |
           echo "Synchronizing ArgoCD application..."
           # Check application status first
-          argocd app get my-app \
+          argocd app get infinisys-webapp \
             --grpc-web \
             --insecure \
             --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
           # Proceed with sync
-          argocd app sync my-app \
+          argocd app sync infinisys-webapp \
             --grpc-web \
             --insecure \
             --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com

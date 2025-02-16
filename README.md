@@ -16,6 +16,7 @@ This project sets up a CI/CD pipeline using GitHub Actions for building, testing
    - `AWS_REGION`: Your AWS region.
    - `ECR_REGISTRY`: The URI of your ECR registry.
    - `ECR_REPOSITORY`: The name of your ECR repository.
+   - `SNYK_TOKEN` : Generate from the snyk acount
    - `KUBE_CONFIG`: Your base64-encoded Kubernetes config for EKS.
 
 3. **Set Up ArgoCD**:
