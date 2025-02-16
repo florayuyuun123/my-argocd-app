@@ -1,52 +1,84 @@
-# Install AWS CLI on your Ubuntu EC2 instance:
+# Step 1: Prepare GitHub Repo
+## Push code to git repository
+cd to the directory on your local machine
+run git init
+run git status
+run git remote -v (this displays the origin you are in)
+run git remote add alias_name eg.(flora) then your repo url
+run git remote -v to Verify
+run git push -u <alias_name> main
 
+## Install AWS CLI on your Ubuntu EC2 instance:
+
+    ```
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     sudo ./aws/install
     aws --version
-     
-# Configure AWS
+    ```
+
+## Configure AWS
 aws configure
 Enter:
 Region: us-west-2
 Access Key ID/Secret Key: Use your AWS credentials.
 Default Output: json.
 
-# Install kubectl (Kubernetes CLI to manage clusters):
+## Install kubectl (Kubernetes CLI to manage clusters):
+
+```
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 kubectl version --client
+```
 
-# Install eksctl (to create EKS clusters easily):
+## Install eksctl (to create EKS clusters easily): OPTIONAL
 
+    ```
     curl -LO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
     tar -xzf eksctl_Linux_amd64.tar.gz
     sudo mv eksctl /usr/local/bin/
     eksctl version
-    
-# Install ArgoCD CLI:
+    ```
 
+## Install ArgoCD CLI:
+
+```
 sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
 sudo chmod +x /usr/local/bin/argocd
 argocd version
+```
 
-# Step 3: Create an EKS Cluster
+# Step 2: Create an EKS Cluster
 Why?
 You need a Kubernetes cluster to run ArgoCD and deploy applications.
 
+```
 aws eks create-cluster \
     --name flo-argo-cluster \
     --region us-west-2 \
     --role-arn arn:aws:iam::642588679360:role/flora-iamrole-nodegroup \
     --resources-vpc-config subnetIds=subnet-0545b32161e7a077a,subnet-07ab1fe52e2842780,securityGroupIds=sg-0fc0dcbf7d563f051
+```
 
-# Verify the cluster is running:
+### Create an IAM role with the following managed permisions and attach to the cluster during cluster creation.
+AmazonEKSNetworkingPolicy
+AmazonEKSLoadBalancingPolicy
+AmazonEKSComputePolicy
+AmazonEKSClusterPolicy
+AmazonEKSBlockStoragePolicy
+AmazonEC2ContainerRegistryFullAccess
 
+### Verify the cluster is running:
+
+```
 kubectl get nodes
+```
 
-# Creat Node Group Creation
+### Create Node Group
 
+```
 aws eks create-nodegroup \
     --cluster-name flo-argo-cluster \
     --nodegroup-name flo-nodegroup \
@@ -56,108 +88,170 @@ aws eks create-nodegroup \
     --instance-types t3.medium \
     --disk-size 20 \
     --region us-west-2
+```
 
-# Confirm the node group status:
+### Create an IAM role with the following managed permisions and attach to the nodegroup during nodegroup creation.
 
+    AmazonEC2ContainerRegistryReadOnly
+    AmazonEKS_CNI_Policy
+    AmazonEKSWorkerNodePolicy
+
+### Create an ec2 inline policy (json) and add the following permissions. This will aid the nodes to join the cluster.
+
+```
+    {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "eks:DescribeCluster",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "ecr:BatchCheckLayerAvailability"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### Confirm the node group status:
+
+```
 aws eks describe-nodegroup --cluster-name flo-argo-cluster --nodegroup-name flo-nodegroup --region us-west-2
+```
 
-# Verify nodes are added to the cluster
+### Verify nodes are added to the cluster
 
+```
 kubectl get nodes
+```
 
+```
 eksctl get nodegroup --cluster flo-argo-cluster --region us-west-2
+```
 
-# Update kubeconfig (connect kubectl to your EKS cluster):
+### Update kubeconfig (connect kubectl to your EKS cluster):
 
+```
 aws eks --region us-west-2 update-kubeconfig --name my-cluster
+```
 
-# Verify Policies Attached to the Cluster Role
-AmazonEKSClusterPolicy
-AmazonEKSVPCResourceController
+### Check the cluster status
 
-# Attach Missing Policies (if any)
-
-aws iam attach-role-policy --role-name flora-iamrole-nodegroup --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-aws iam attach-role-policy --role-name flora-iamrole-nodegroup --policy-arn arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
-
-# Ensure the IAM role flora-AmazonEKSAutoClusterRole has the following managed policies attached:
-
-AmazonEKSWorkerNodePolicy
-AmazonEC2ContainerRegistryReadOnly
-AmazonSSMManagedInstanceCore
-
-# Attach Policies Using the AWS CLI:
-
-aws iam attach-role-policy --role-name flora-AmazonEKSAutoClusterRole --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-aws iam attach-role-policy --role-name flora-AmazonEKSAutoClusterRole --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-aws iam attach-role-policy --role-name flora-AmazonEKSAutoClusterRole --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-
-# Validate the Cluster and Node Group
-# Check the cluster status
-
+```
 aws eks describe-cluster --name flo-argo-cluster --region us-west-2
+```
 
-# Check the node group status:
+### Check the node group status:
 
+```
 aws eks describe-nodegroup \
     --cluster-name flo-argo-cluster \
     --nodegroup-name flo-nodegroup \
     --region us-west-2
-
+```
+```
 aws eks describe-nodegroup --cluster-name flo-argo-cluster --nodegroup-name flo-nodegroup --region us-west-2 --query "nodegroup.status"
+```
 
-# Delete cluster
+### Delete cluster
 
+```
 eksctl delete cluster --name flo-argo-cluster --region us-west-2
+```
 
-# Verify nodes in the cluster:
+### Verify nodes in the cluster:
 
+```
 kubectl get nodes
+```
 
-# Investigate the Node Group Failure
+### Investigate the Node Group incase of Failure
 
+```
 aws eks describe-nodegroup \
     --cluster-name flo-argo-cluster \
     --nodegroup-name flo-nodegroup \
     --region us-west-2 \
     --query "nodegroup.statusReason"
+```
 
-# Delete the failed node group:
+### Delete the failed node group if need be.
 
+```
 aws eks delete-nodegroup \
     --cluster-name flo-argo-cluster \
     --nodegroup-name flo-nodegroup \
     --region us-west-2
+```
+### The error indicates that kubectl is unable to connect to the Kubernetes API server because it’s trying to access a local server (localhost:8080) instead of the EKS cluster's API endpoint. This typically happens when the kubeconfig is not correctly set up or is pointing to the wrong cluster 
 
-# The error indicates that kubectl is unable to connect to the Kubernetes API server because it’s trying to access a local server (localhost:8080) instead of the EKS cluster's API endpoint. This typically happens when the kubeconfig is not correctly set up or is pointing to the wrong cluster   
-Step 1: Verify kubeconfig Setup
-Ensure your kubeconfig file is correctly configured to point to your EKS cluster.
+* Verify kubeconfig Setup
+  - Ensure your kubeconfig file is correctly configured to point to your EKS cluster.
+  - Update kubeconfig for Your EKS Cluster: Use the following AWS CLI command to generate the proper kubeconfig:
 
-Update kubeconfig for Your EKS Cluster: Use the following AWS CLI command to generate the proper kubeconfig:
-
-    aws eks update-kubeconfig --region us-west-2 --name flo-argo-cluster
+```
+aws eks update-kubeconfig --region us-west-2 --name flo-argo-cluster
+```
 
 Check kubeconfig Location: The updated kubeconfig is typically stored in ~/.kube/config. Verify it:
+```
+cat ~/.kube/config
+```
 
-    cat ~/.kube/config
-# install the VPC CNI plugin manifest
+# step 3: Install ArgoCD:
 
-kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.12.0/config/master/aws-k8s-cni.yaml
+```
+kubectl create namespace argocd
+```
 
-# Verify the installation:
+```
+ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+ ```
 
-    kubectl get pods -n kube-system
-# Check IPAM Logs
+* Verify the ArgoCD Installation:
+  - After installation, you can check the status of ArgoCD pods to ensure everything is running:
 
-kubectl logs -n kube-system aws-node-tsjr6 -c aws-vpc-cni-init
+```        
+kubectl get pods -n argocd
+```
+* Option 1: Change Service Type to LoadBalancer
+  - This option makes ArgoCD accessible from outside the cluster by assigning a public IP address.
+  - Change the Service Type:
+  - Update the argocd-server service to use LoadBalancer type:
+        
+```        
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+```
 
-# Check Node Conditions
-Inspect the node to identify why it remains NotReady:
+  - Check for External IP:
+  - After a few moments, Kubernetes will allocate an external IP address to the argocd-server service. You can check the status with:
 
-    kubectl describe node ip-10-0-2-100.us-west-2.compute.internal
+```        
+kubectl get svc argocd-server -n argocd
+```
 
+  - Once an external IP appears in the EXTERNAL-IP column, you can access ArgoCD at https://<external-ip>.
+  - NOTE: This approach may incur additional costs if using cloud load balancers.
+        
+* Option 2: Use Port Forwarding (Recommended for Quick Access)
+  - If you only need temporary access, port forwarding is a secure and cost-effective way to access the ArgoCD UI.
+  - Run Port Forwarding:
+  - Run the following command on your EC2 instance (or wherever you have access to kubectl):
 
-
+```       
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
 
 
 # USE MINIKUBE INSTEAD
