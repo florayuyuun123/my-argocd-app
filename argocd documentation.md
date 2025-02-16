@@ -1,12 +1,12 @@
 # Step 1: Prepare GitHub Repo
 ## Push code to git repository
-cd to the directory on your local machine
-run git init
-run git status
-run git remote -v (this displays the origin you are in)
-run git remote add alias_name eg.(flora) then your repo url
-run git remote -v to Verify
-run git push -u <alias_name> main
+* cd to the directory on your local machine
+* run git init
+* run git status
+* run git remote -v (this displays the origin you are in)
+* run git remote add alias_name eg.(flora) then your repo url
+* run git remote -v to Verify
+* run git push -u <alias_name> main
 
 ## Install AWS CLI on your Ubuntu EC2 instance:
 
