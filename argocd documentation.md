@@ -50,6 +50,42 @@ sudo chmod +x /usr/local/bin/argocd
 argocd version
 ```
 
+### Other Installations
+* Install Node.jsand npm:
+
+```
+sudo apt-get install nodejs npm
+
+```
+* Verify the installation:
+
+```
+node -v
+npm -v
+```
+
+* Install Snyk
+Once Node.jsand npm are installed, you can install Snyk using npm:
+
+Install Snyk globally:
+
+```
+npm install -g snyk
+```
+
+* Verify the installation:
+
+```
+snyk -v
+```
+
+* Authenticate Snyk
+To use Snyk, you'll need to authenticate using your Snyk token:
+
+```
+snyk auth <YOUR_SNYK_TOKEN>
+```
+
 # Step 2: Create an EKS Cluster
 Why?
 You need a Kubernetes cluster to run ArgoCD and deploy applications.
@@ -193,6 +229,8 @@ Retrieve the token associated with the service account. Replace my-namespace and
 kubectl get secret $(kubectl get serviceaccount my-service-account -n my-namespace -o jsonpath="{.secrets[0].name}") -n my-namespace -o jsonpath="{.data.token}" | base64 --decode
 ```
 
+* This command will output the token in plain text, which you can then use in your kubeconfig file.
+
 ### Check the cluster status
 
 ```
@@ -300,11 +338,79 @@ kubectl get svc argocd-server -n argocd
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
+## Access ArgoCD UI
+
+Open the URL in Your Browser:
+Go to the following URL in your browser: replace the following URL with that of your on external-IP
+
+https://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
+
+* Log in to ArgoCD:
+  - The default ArgoCD username is admin.
+  - To get the initial password, run:
+
+```
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+```
+Replace the following with your own password and longin to the argocd UI
+Passwd: ws15tEtt-wcBZ3OK
+
+# Take note of the following after installing argocd.
+
+* Update PATH if Necessary
+If /usr/local/bin is not in your PATH, add it by updating your shell configuration file (e.g., .bashrc, .zshrc, or .profile):
+Open the configuration file in a text editor:
+
+```
+nano ~/.bashrc
+```
+
+Add the following line:
+
+```
+export PATH=$PATH:/usr/local/bin
+```
+
+Reload the configuration:
+
+```
+source ~/.bashrc
+```
+
+Create argocd app
+
+```
+argocd app create infinisys-webapp \
+  --repo https://github.com/ms-solutions-projects/infinisys-webapp.git \
+  --path config/k8s/ \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default \
+  --sync-policy automated
+```
+
+Run your original command to sync the application:
+
+```
+argocd app sync infinisys-webapp \
+  --grpc-web \
+  --insecure \
+  --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+  --timeout 300
+```
+
+Add github repo to argocd 
+
+```
+argocd repo add <argocd_repo_name> \
+  --username <your-github-username> \
+  --password <your-personal-access-token> \
+  --type git
+```
 
 
 
 
-# USE MINIKUBE INSTEAD
+### USE MINIKUBE INSTEAD <CODE TO BE UPDATED>
 
 # Plan for Implementing the CI/CD Pipeline
 
