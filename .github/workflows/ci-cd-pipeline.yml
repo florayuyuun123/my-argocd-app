@@ -140,7 +140,7 @@ jobs:
       - name: Verify ArgoCD Server Connectivity
         run: |
           echo "Testing connectivity to ArgoCD server..."
-          curl -I https://a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com --insecure
+          curl -I https://ab575c8c888554c6bba2f6fc32474309-427562321.us-east-1.elb.amazonaws.com --insecure
 
       # Step 4: Configure AWS CLI and kubeconfig for EKS
       - name: Configure AWS CLI and kubeconfig
@@ -159,7 +159,7 @@ jobs:
       - name: ArgoCD Login
         run: |
           echo "Logging into ArgoCD..."
-          argocd login a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+          argocd login ab575c8c888554c6bba2f6fc32474309-427562321.us-east-1.elb.amazonaws.com \
             --username admin \
             --password ${{ secrets.ARGOCD_PASSWORD }} \
             --grpc-web \
@@ -170,7 +170,7 @@ jobs:
         run: |
           echo "Verifying ArgoCD session..."
           argocd account get-user-info \
-            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+            --server ab575c8c888554c6bba2f6fc32474309-427562321.us-east-1.elb.amazonaws.com \
             --grpc-web \
             --insecure
 
@@ -182,12 +182,12 @@ jobs:
           argocd app get infinisys-webapp \
             --grpc-web \
             --insecure \
-            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
+            --server ab575c8c888554c6bba2f6fc32474309-427562321.us-east-1.elb.amazonaws.com
           # Proceed with sync
           argocd app sync infinisys-webapp \
             --grpc-web \
             --insecure \
-            --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com
+            --server ab575c8c888554c6bba2f6fc32474309-427562321.us-east-1.elb.amazonaws.com
 
       # Step 8: Add Debugging Steps
       - name: Debug Environment

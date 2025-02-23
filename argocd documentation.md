@@ -377,6 +377,16 @@ Reload the configuration:
 source ~/.bashrc
 ```
 
+```
+argocd login <ARGOCD_EXTERNAL_IP OR SERVER> --username <USERNAME> --password <PASSWORD>
+```
+
+Add github repo to argocd
+
+```
+argocd repo add https://github.com/ms-solutions-projects/infinisys-webapp.git --username florayuyuun123 --password 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 --type git
+```
+
 Create argocd app
 
 ```
@@ -407,6 +417,7 @@ argocd repo add <argocd_repo_name> \
   --type git
 ```
 
+```
 
 
 
