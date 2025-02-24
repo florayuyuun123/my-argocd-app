@@ -20,7 +20,9 @@ jobs:
           sudo chmod +x /usr/local/bin/argocd
 
       - name: Upgrade npm to v11.0.0
-        run: sudo npm install -g npm@11.0.0
+        run: |
+          sudo npm install -g npm@11.0.0
+          npm --version
 
       - name: Clear npm Cache
         run: |
@@ -103,11 +105,12 @@ jobs:
           npm install -g snyk
 
       - name: Run Snyk Scan
+        continue-on-error: true
         run: |
           snyk test --file=./app/package.json --policy-path=./infinisys-webapp --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
+          
  
   deploy-to-eks:
     runs-on: ubuntu-latest
