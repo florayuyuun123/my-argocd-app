@@ -10,31 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Install ArgoCD CLI
       - name: Install ArgoCD CLI
         run: |
           echo "Installing ArgoCD CLI..."
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
 
-      # Step 3: Clear npm cache thoroughly
+      - name: Upgrade npm to v11.0.0
+        run: npm install -g npm@11.0.0
+
       - name: Clear npm Cache
         run: |
           npm cache clean --force
           npm cache verify
 
-      # Step 4: Regenerate package-lock.json and node_modules
       - name: Regenerate Dependencies
         run: |
           rm -rf ./app/package-lock.json ./app/node_modules
           npm set registry https://registry.npmjs.org/
           npm install --prefix ./app
 
-      # Step 5: Cache Node.js dependencies
       - name: Cache Node.js Dependencies
         uses: actions/cache@v3
         with:
@@ -43,25 +41,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Step 6: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Step 7: Install npm-force-resolutions
       - name: Install npm-force-resolutions
         run: |
           npm install npm-force-resolutions --save-dev
 
-      # Step 8: Install and audit dependencies
       - name: Install and Audit Dependencies
         run: |
           npx npm-force-resolutions
           npm install --prefix ./app
           npm audit fix --prefix ./app
 
-      # Step 9: Build Docker image without caching
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -69,7 +63,6 @@ jobs:
         run: |
           docker build --no-cache -t infinisys-webapp:latest ./app
 
-      # Step 10: Tag Docker image with version
       - name: Tag Docker Image
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -79,7 +72,6 @@ jobs:
           docker tag infinisys-webapp:latest $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker tag infinisys-webapp:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 11: Authenticate Docker with AWS ECR
       - name: Authenticate with AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -88,7 +80,6 @@ jobs:
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-      # Step 12: Push Docker image to ECR
       - name: Push Docker Image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
@@ -98,7 +89,6 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      # Step 13: Create Snyk Policy File
       - name: Create Snyk Policy File
         run: |
           mkdir -p ./infinisys-webapp
@@ -108,17 +98,16 @@ jobs:
                   reason: 'Temporary ignore until resolved in upstream dependencies'
                   expires: '2024-12-31T00:00:00Z'" > ./infinisys-webapp/.snyk
 
-      # Step 14: Install Snyk CLI
       - name: Install Snyk CLI
         run: |
           npm install -g snyk
 
-      # Step 15: Run Snyk scan
       - name: Run Snyk Scan
         run: |
           snyk test --file=./app/package.json --policy-path=./infinisys-webapp --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
 
   deploy-to-eks:
     runs-on: ubuntu-latest

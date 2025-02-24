@@ -14,8 +14,6 @@
     "preinstall": "npx npm-force-resolutions"
   },
   "resolutions": {
-    "semver": "7.5.2",
-    "simple-update-notifier/semver": "7.5.2",
-    "nodemon/simple-update-notifier/semver": "7.5.2"
+    "cross-spawn": "8.1.0"
   }
 }

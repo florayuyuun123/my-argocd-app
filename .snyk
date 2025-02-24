@@ -1,5 +1,5 @@
 ignore:
   SNYK-JS-CROSSSPAWN-8303230:
     - '*':
-        reason: "Temporary ignore until resolved in upstream dependencies"
-        expires: "2024-12-31T00:00:00Z"
+        reason: 'Temporary ignore until resolved in upstream dependencies'
+        expires: '2024-12-31T00:00:00Z'
