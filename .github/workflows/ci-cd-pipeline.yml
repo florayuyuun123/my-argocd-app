@@ -54,7 +54,7 @@ jobs:
         run: |
           npx npm-force-resolutions
           npm install --prefix ./app
-          npm audit fix --prefix ./app
+          npm audit fix --force --prefix ./app
 
       - name: Build Docker Image
         env:
@@ -108,7 +108,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-
+ 
   deploy-to-eks:
     runs-on: ubuntu-latest
     needs: build-and-scan
