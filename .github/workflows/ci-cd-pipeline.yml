@@ -20,7 +20,7 @@ jobs:
           sudo chmod +x /usr/local/bin/argocd
 
       - name: Upgrade npm to v11.0.0
-        run: npm install -g npm@11.0.0
+        run: sudo npm install -g npm@11.0.0
 
       - name: Clear npm Cache
         run: |
