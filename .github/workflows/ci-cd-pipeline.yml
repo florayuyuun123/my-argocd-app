@@ -92,7 +92,7 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:infinisys-webapp:latest
 
       - name: Create Snyk Policy File
         run: |
@@ -113,7 +113,7 @@ jobs:
           snyk test --file=./app/package.json --policy-path=./infinisys-webapp --severity-threshold=medium --docker ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          
+
  
   deploy-to-eks:
     runs-on: ubuntu-latest
