@@ -52,10 +52,13 @@ jobs:
         run: |
           npm install npm-force-resolutions --save-dev
 
-      - name: Install and Audit Dependencies
+      - name: Apply Forced Resolutions
         run: |
           npx npm-force-resolutions
           npm install --prefix ./app
+
+      - name: Install and Audit Dependencies
+        run: |
           npm audit fix --force --prefix ./app
 
       - name: Build Docker Image
