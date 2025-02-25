@@ -92,7 +92,7 @@ jobs:
         run: |
           VERSION=$(git rev-parse --short HEAD)
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:infinisys-webapp:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Create Snyk Policy File
         run: |
