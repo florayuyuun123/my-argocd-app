@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infinisys-webapp-deployment
+  name: infinisys-webapp
   labels:
     app: infinisys-webapp
 spec:
