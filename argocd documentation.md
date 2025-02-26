@@ -417,7 +417,56 @@ argocd repo add <argocd_repo_name> \
   --type git
 ```
 
+
+* NOTE THIS ERROR: account 'admin' does not have apiKey capability
+  - This error occurs because API tokens (API keys) are disabled for the admin account in ArgoCD. To fix this, you need to enable API key capabilities for the admin account.
+
+* Step 1: Enable API Tokens for Admin and Edit the ArgoCD ConfigMap
+
 ```
+kubectl edit configmap argocd-cm -n argocd
+```
+
+Find the accounts.admin section and enable API key capability:
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  accounts.admin: apiKey, login
+```
+
+Save and exit the editor.
+
+* Step 2: Restart ArgoCD Server. After modifying the ConfigMap, restart the ArgoCD server to apply changes:
+
+```
+kubectl rollout restart deployment argocd-server -n argocd
+```
+
+* Step 3: Generate the API Token. Once ArgoCD restarts, try generating the token again:
+
+```
+argocd account generate-token --account admin
+```
+If successful, copy and store the token securely.
+
+* Step 4: Use API Token in GitHub Actions. Add the token as a GitHub Secret (ARGOCD_TOKEN).
+Modify the GitHub Actions workflow to use the token:
+
+```
+- name: Authenticate to ArgoCD
+  run: |
+    argocd login ${{ secrets.ARGOCD_SERVER }} \
+      --username admin \
+      --password ${{ secrets.ARGOCD_TOKEN }} \
+      --grpc-web \
+      --insecure
+```
+
 
 
 
