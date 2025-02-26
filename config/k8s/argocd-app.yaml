@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: infinisys-webapp
+  name: infinisys-webapp-argocd
   namespace: argocd              # Namespace where ArgoCD is installed
 spec:
   project: default

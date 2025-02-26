@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infinisys-webapp
+  name: infinisys-webapp-deployment
   labels:
     app: infinisys-webapp
 spec:
@@ -18,6 +18,6 @@ spec:
     spec:
       containers:
         - name: infinisys-webapp
-          image: 781655249241.dkr.ecr.us-east-1.amazonaws.com/flora-argocd-ecr-demo:latest  # Placeholder for the Docker image URI
+          image: 642588679360.dkr.ecr.us-east-1.amazonaws.com/infinisys-webapp:latest  # Placeholder for the Docker image URI
           ports:
             - containerPort: 8080
