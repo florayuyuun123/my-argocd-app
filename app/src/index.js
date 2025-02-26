@@ -2,7 +2,7 @@
 
 const express = require('express');
 const app = express();
-const port = 80;
+const port = 3000;
 
 // Simple route to confirm the application is running
 app.get('/', (req, res) => {

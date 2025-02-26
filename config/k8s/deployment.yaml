@@ -20,4 +20,4 @@ spec:
         - name: infinisys-webapp
           image: 642588679360.dkr.ecr.us-east-1.amazonaws.com/infinisys-webapp:latest  # Placeholder for the Docker image URI
           ports:
-            - containerPort: 8080
+            - containerPort: 3000
