@@ -3,21 +3,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: infinisys-webapp
+  name: my-argocd-app
   labels:
-    app: infinisys-webapp
+    app: my-argocd-app
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: infinisys-webapp
+      app: my-argocd-app
   template:
     metadata:
       labels:
-        app: infinisys-webapp
+        app: my-argocd-app
     spec:
       containers:
-        - name: infinisys-webapp
-          image: 642588679360.dkr.ecr.us-east-1.amazonaws.com/infinisys-webapp:latest  # Placeholder for the Docker image URI
+        - name: my-argocd-app
+          image: 642588679360.dkr.ecr.us-west-2.amazonaws.com/my-argocd-app:latest  # Placeholder for the Docker image URI
           ports:
             - containerPort: 3000

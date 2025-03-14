@@ -8,6 +8,71 @@
 * run git remote -v to Verify
 * run git push -u <alias_name> main
 
+# Prepare the EC2 Instance in AWS management console.
+* Launch an Ubuntu EC2 Instance:
+ - Choose an instance type with at least 2 vCPUs and 2 GB of RAM (recommended t3.medium).
+ - Select Ubuntu 22.04 or 24.04 as the AMI.
+ - Open the following ports in the Security Group:
+
+80: for internet access, 443: for https access, 22: For SSH access, 8080: To access ArgoCD UI.
+
+ - Connect to the EC2 Instance via SSH:
+
+``` 
+ssh -i <your-key-pair.pem> ubuntu@<ec2-instance-public-ip>
+```
+
+Update System Packages:
+
+```
+sudo apt-get update && sudo apt-get upgrade -y
+```
+
+### it is a good practice not to work as a root user and therefore there is need to create a user
+
+ - create a user
+
+```
+sudo adduser <your_username>
+```
+
+ - disable user password
+
+```
+sudo passwd -d <your_username>
+```
+
+ - add user to sudoers group
+
+```
+sudo usermod -aG sudo <your_username>
+```
+
+ - Configure the host.
+run the following command. In the edditor, replace the IP address of the host with your desired host name.
+
+```
+sudo /etc/hosts
+```
+
+OR
+
+```
+sudo hostnamectl set-hostname <chose a hostname, e.g controle plane>
+```
+
+ - To impliment the changes, run this command:
+
+```
+exec bash 
+```
+
+ - Suitch user
+
+``` 
+sudo su - <your_username>
+```
+
 ## Install AWS CLI on your Ubuntu EC2 instance:
 
     ```
@@ -17,12 +82,163 @@
     aws --version
     ```
 
+* Alternatively, run the commands to download and Install AWS CLI v2 one after ther other.
+ - Download the AWS CLI v2 Installer:
+
+```
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+```
+
+ - Verify the File Download (Optional)
+You can use ls to check if the file awscliv2.zip exists and has a reasonable file size (approximately 35-40 MB):
+
+```
+ls -lh awscliv2.zip
+```
+
+ - Install unzip
+
+``` 
+sudo apt install unzip
+```
+
+ - Unzip the Installer. Now unzip the file:
+
+```
+unzip awscliv2.zip
+```
+
+ - Run the Installer. Once unzipped, run the installer:
+
+```
+sudo ./aws/install
+```
+
+ - Verify the Installation. After installation, confirm the version:
+
+```
+aws --version
+```
+
 ## Configure AWS
 aws configure
 Enter:
 Region: us-west-2
 Access Key ID/Secret Key: Use your AWS credentials.
 Default Output: json.
+
+## Install Docker
+* Install Docker using apt: This is the most common way to install Docker on Ubuntu.
+
+```
+sudo apt update
+sudo apt install docker.io -y
+```
+
+ - Verify Docker Installation: After installation, check that Docker is installed correctly by running:
+
+```
+docker --version
+```
+
+ - Enable and start the Docker service:
+
+```  
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+ - Once Docker is installed and running, try the original ECR login command:
+
+```
+aws ecr get-login-password --region <your
+_region> | docker login --username AWS --password-stdin <your_ecr_repo_URI> 
+```
+
+ - Add User to Docker Group: Run the following command to add your user ($USER) to the docker group:
+
+```
+sudo usermod -aG docker $USER
+```
+
+* Restart Your Session:
+After adding your user to the Docker group, you need to restart your session for the changes to take effect. You can either log out of the server and log back in or use the following command:
+
+```
+newgrp docker
+```
+
+* Install pass (Linux Password Store):
+
+```
+sudo apt install pass -y
+```
+
+ - Set Up docker-credential-pass: Install and configure the credential helper by following Docker’s documentation. After setup, configure Docker to use it:
+
+``` 
+git clone https://github.com/docker/docker-credential-helpers.git
+```
+
+* Install make
+First, install make so you can build the credential helper:
+
+```
+sudo apt update
+sudo apt install make -y
+```
+
+* Install go (if Not Already Installed)
+Since the credential helpers are written in Go, you’ll need Go installed as well. If it’s not already installed, you can install it with the following command
+
+```
+sudo apt install golang-go -y
+```
+
+ - Rebuild the Credential Helper
+Once make and go are installed, navigate back to the docker-credential-helpers directory and build the pass credential helper:
+
+```
+cd docker-credential-helpers
+```
+
+```
+make pass
+```
+
+ - Move the Built Credential Helper to /usr/local/bin
+After the build is successful, move the docker-credential-pass binary to a directory in your PATH, such as /usr/local/bin: run the following command to find the path.
+
+```
+find . -name "docker-credential-pass"
+```
+
+```
+sudo mv ./bin/docker-credential-pass /usr/local/bin/
+```
+
+```
+ls -l /usr/local/bin/docker-credential-pass
+```
+
+ - Verify the Installation.
+To confirm that docker-credential-pass was installed successfully, check its version or path:
+
+```
+docker-credential-pass --help
+```
+
+ - Configure Docker to Use the Credential Store: Update the Docker configuration to use pass as the credential store by adding the following in ~/.docker/config.json:
+
+```
+nano ~/.docker/config.json
+```
+
+```
+{
+  "credsStore": "pass"
+}
+```
 
 ## Install kubectl (Kubernetes CLI to manage clusters):
 
@@ -51,7 +267,7 @@ argocd version
 ```
 
 ### Other Installations
-* Install Node.jsand npm:
+* Install Node.js and npm:
 
 ```
 sudo apt-get install nodejs npm
@@ -234,25 +450,26 @@ kubectl get secret $(kubectl get serviceaccount my-service-account -n my-namespa
 ### Check the cluster status
 
 ```
-aws eks describe-cluster --name flo-argo-cluster --region us-west-2
+aws eks describe-cluster --name <cluster_name> --region <region>
 ```
 
 ### Check the node group status:
 
 ```
 aws eks describe-nodegroup \
-    --cluster-name flo-argo-cluster \
-    --nodegroup-name flo-nodegroup \
-    --region us-west-2
+    --cluster-name <cluster_name> \
+    --nodegroup-name nodegroup_name \
+    --region <region>
 ```
+
 ```
-aws eks describe-nodegroup --cluster-name flo-argo-cluster --nodegroup-name flo-nodegroup --region us-west-2 --query "nodegroup.status"
+aws eks describe-nodegroup --cluster-name <cluster_name> --nodegroup-name <nodegroup_name> --region <region> --query "nodegroup.status"
 ```
 
 ### Delete cluster
 
 ```
-eksctl delete cluster --name flo-argo-cluster --region us-west-2
+eksctl delete cluster --name <cluster_name> --region <region>
 ```
 
 ### Verify nodes in the cluster:
@@ -265,9 +482,9 @@ kubectl get nodes
 
 ```
 aws eks describe-nodegroup \
-    --cluster-name flo-argo-cluster \
-    --nodegroup-name flo-nodegroup \
-    --region us-west-2 \
+    --cluster-name <cluster_name> \
+    --nodegroup-name nodegroup_name \
+    --region <region> \
     --query "nodegroup.statusReason"
 ```
 
@@ -275,10 +492,11 @@ aws eks describe-nodegroup \
 
 ```
 aws eks delete-nodegroup \
-    --cluster-name flo-argo-cluster \
-    --nodegroup-name flo-nodegroup \
-    --region us-west-2
+    --cluster-name <cluster_name> \
+    --nodegroup-name nodegroup_name \
+    --region <region>
 ```
+
 ### The error indicates that kubectl is unable to connect to the Kubernetes API server because it’s trying to access a local server (localhost:8080) instead of the EKS cluster's API endpoint. This typically happens when the kubeconfig is not correctly set up or is pointing to the wrong cluster 
 
 * Verify kubeconfig Setup
@@ -286,10 +504,11 @@ aws eks delete-nodegroup \
   - Update kubeconfig for Your EKS Cluster: Use the following AWS CLI command to generate the proper kubeconfig:
 
 ```
-aws eks update-kubeconfig --region us-west-2 --name flo-argo-cluster
+aws eks update-kubeconfig --region <region> --name <cluster_name>
 ```
 
-Check kubeconfig Location: The updated kubeconfig is typically stored in ~/.kube/config. Verify it:
+ - Check kubeconfig Location: The updated kubeconfig is typically stored in ~/.kube/config. Verify it:
+
 ```
 cat ~/.kube/config
 ```
@@ -391,7 +610,7 @@ Create argocd app
 
 ```
 argocd app create infinisys-webapp \
-  --repo https://github.com/ms-solutions-projects/infinisys-webapp.git \
+  --repo <github_repo_url> \
   --path config/k8s/ \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace default \
@@ -404,7 +623,7 @@ Run your original command to sync the application:
 argocd app sync infinisys-webapp \
   --grpc-web \
   --insecure \
-  --server a6ba9acf0aaaf45688787039fdb779de-2124910579.us-east-1.elb.amazonaws.com \
+  --server <Argocd_External_IP> \
   --timeout 300
 ```
 
@@ -454,7 +673,7 @@ argocd account generate-token --account admin
 ```
 If successful, copy and store the token securely.
 
-* Step 4: Use API Token in GitHub Actions. Add the token as a GitHub Secret (ARGOCD_TOKEN).
+* Step 4: Use API Token in GitHub Actions incase you dont want to use argocd password. Add the token as a GitHub Secret (ARGOCD_TOKEN).
 Modify the GitHub Actions workflow to use the token:
 
 ```
@@ -466,104 +685,3 @@ Modify the GitHub Actions workflow to use the token:
       --grpc-web \
       --insecure
 ```
-
-
-
-
-### USE MINIKUBE INSTEAD <CODE TO BE UPDATED>
-
-# Plan for Implementing the CI/CD Pipeline
-
-Steps to Set Up the Environment on Ubuntu
-# 1. Install Docker on Ubuntu
-Docker is essential for containerization.
-Install Docker
-Run the following commands to install Docker on your machine:
-
-sudo apt update
-sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-
-# Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-# Add Docker repository
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io
-
-# Verify Docker
-# Check if Docker is running:
-
-sudo systemctl status docker
-
-# Add your user to the docker group so you don’t need sudo for Docker commands:
-
-sudo usermod -aG docker ${USER}
-su - ${USER}
-
-# 2. Install Kubernetes (Minikube or K3s)
-To run Kubernetes locally on Ubuntu, use Minikube or K3s. I'll proceed with Minikube here.
-
-# Install kubectl (Kubernetes CLI)
-
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-
-Verify kubectl:
-
-kubectl version --client
-
-Install Minikube
-Minikube sets up a lightweight local Kubernetes cluster.
-
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-sudo install minikube-linux-amd64 /usr/local/bin/minikube
-
-Start Minikube with the Docker driver:
-
-minikube start --driver=docker
-
-Verify Minikube and Kubernetes are running:
-
-kubectl get nodes
-
-# 3. Install ArgoCD
-Create a Namespace for ArgoCD
-
-kubectl create namespace argocd
-
-Install ArgoCD
-
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-Verify ArgoCD Pods
-
-kubectl get pods -n argocd
-
-# 4. Access ArgoCD UI
-Expose the ArgoCD service using port forwarding:
-
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-Open a browser and go to:
-
-https://localhost:8080
-
-Log in to ArgoCD
-Username: admin
-Password: The ArgoCD initial password can be obtained via:
-
-kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
-
-
-# 5. Test Application
-
-Get the Minikube IP:
-
-minikube service my-app-service --url
-
-Access your app using:
-
-http://<minikube-ip>:30001

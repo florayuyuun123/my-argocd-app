@@ -17,7 +17,9 @@ This project sets up a CI/CD pipeline using GitHub Actions for building, testing
    - `ECR_REGISTRY`: The URI of your ECR registry.
    - `ECR_REPOSITORY`: The name of your ECR repository.
    - `SNYK_TOKEN` : Generate from the snyk acount
-   - `KUBE_CONFIG`: Your base64-encoded Kubernetes config for EKS.
+   - `KUBE_CONFIG`: Your base64-encoded Kubernetes config for EKS
+   - `ARGOCD_PASSWORD` : Either your initall or customized argocd password.
+   - `GH_PATH`: Your github token
 
 3. **Set Up ArgoCD**:
    - Install ArgoCD on the EKS cluster and connect it to your GitHub repository.
