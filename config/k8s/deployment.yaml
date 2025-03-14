@@ -18,6 +18,6 @@ spec:
     spec:
       containers:
         - name: my-argocd-app
-          image: 642588679360.dkr.ecr.us-west-2.amazonaws.com/my-argocd-app:latest  # Placeholder for the Docker image URI
+          image: 642588679360.dkr.ecr.us-west-2.amazonaws.com/flo-ecr-repo:latest  # Placeholder for the Docker image URI
           ports:
             - containerPort: 3000
