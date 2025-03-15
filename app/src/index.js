@@ -9,6 +9,7 @@ app.get('/', (req, res) => {
   res.send('Hello, Kubernetes DevOps Pipeline!');
 });
 
-app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`);
+// Bind to 0.0.0.0 to allow external access
+app.listen(port, '0.0.0.0', () => {
+  console.log(`App listening at http://0.0.0.0:${port}`);
 });
