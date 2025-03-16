@@ -685,3 +685,14 @@ Modify the GitHub Actions workflow to use the token:
       --grpc-web \
       --insecure
 ```
+
+Get the ECR Login Password
+
+aws ecr get-login-password --region us-west-2
+This will return a long password (token) that is valid for 12 hours.
+On your argocd UI, click on "pod"; copy image (e.g 642588679360.dkr.ecr.us-west-2.amazonaws.com/flo-ecr-repo:latest) and 
+Use These Credentials in the Login Prompt
+Username: AWS
+Password: (Paste the token from step 1)
+
+Then, click Sign In.
