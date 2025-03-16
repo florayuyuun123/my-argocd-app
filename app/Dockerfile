@@ -1,12 +1,6 @@
 # Use the latest Alpine base image and Node.js LTS
 FROM node:20-alpine AS build
 
-# # Use a valid Alpine base image
-# FROM alpine:3.3
-
-# Or switch to a more recent version
-# FROM alpine:3.17
-
 # Create and set the working directory
 WORKDIR /app
 
@@ -18,6 +12,9 @@ RUN npm ci --only=production
 
 # Copy application code to the working directory
 COPY ./src /app
+
+# ✅ Copy the public directory to ensure static assets (e.g., logo.png) are available
+COPY ./public /app/public
 
 # Expose the application port
 EXPOSE 8080
