@@ -131,7 +131,7 @@ jobs:
       - name: Verify ArgoCD Server Connectivity
         run: |
           echo "Testing connectivity to ArgoCD server..."
-          curl -I https://${{ secrets.ARGOCD_SERVER }} --insecure
+          curl -I https://ad7256489373149abb797ae020cee9fd-911514957.us-west-2.elb.amazonaws.com --insecure
 
       - name: Configure AWS CLI and kubeconfig
         uses: aws-actions/configure-aws-credentials@v3
